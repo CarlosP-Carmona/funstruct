@@ -29,9 +29,22 @@ fs_grid <- function(space, res = NULL, padding = 0.05) {
     stop("`res` must be a single integer >= 2.", call. = FALSE)
   }
   rng <- apply(co, 2L, range)
-  pad <- (rng[2L, ] - rng[1L, ]) * padding
+  width <- rng[2L, ] - rng[1L, ]
+  deg <- width < .Machine$double.eps^0.5 *
+    pmax(abs(rng[1L, ]), abs(rng[2L, ]), 1)
+  pad <- width * padding
   lo <- rng[1L, ] - pad
   hi <- rng[2L, ] + pad
+  if (any(deg)) {
+    # an axis with (almost) no variation across units would collapse the
+    # grid to zero volume; extend it by +/- 1 around the constant value
+    lo[deg] <- rng[1L, deg] - 1
+    hi[deg] <- rng[2L, deg] + 1
+    warning("Axis/axes with zero variation across units: ",
+            paste(colnames(co)[deg], collapse = ", "),
+            ". Grid extended by +/- 1 around the constant value.",
+            call. = FALSE)
+  }
   step <- (hi - lo) / res
   mids <- lapply(seq_len(d), function(j) {
     lo[j] + step[j] * (seq_len(res) - 0.5)

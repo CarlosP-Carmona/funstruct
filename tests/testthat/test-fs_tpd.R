@@ -80,7 +80,9 @@ test_that("fs_tpd (means route): sds-based TPDs recover the imposed kernel", {
   m <- data.frame(tr1 = c(-2, 2), tr2 = c(0, 0),
                   row.names = c("u1", "u2"))
   sp <- fs_space(m, method = "raw", scale = FALSE)
-  g <- fs_grid(sp, res = 30L)
+  # tr2 has zero variation across units: the grid must extend that axis
+  # instead of collapsing to zero cell volume
+  expect_warning(g <- fs_grid(sp, res = 30L), "zero variation")
   tp <- fs_tpd(sp, sds = c(0.5, 0.5), grid = g, alpha = 1)
   expect_identical(tp$bw$attachment, "entity")
   # density proportional to a normal centred on the unit's coordinates

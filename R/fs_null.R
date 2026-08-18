@@ -71,7 +71,9 @@ fs_null <- function(space, comm = NULL, engine = c("prob", "points"),
                  na.rm = TRUE) + 1) / (n + 1)
   p_lo <- (apply(sweep(arr, c(1L, 2L), obs_m, "<="), c(1L, 2L), sum,
                  na.rm = TRUE) + 1) / (n + 1)
-  pval <- pmin(1, 2 * pmin(p_hi, p_lo))
+  # first argument must be the matrix: pmin() keeps the attributes
+  # (including dim) of its first argument only
+  pval <- pmin(2 * pmin(p_hi, p_lo), 1)
 
   out <- obs
   for (j in colnames(obs)) {

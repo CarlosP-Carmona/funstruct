@@ -9,6 +9,9 @@
 #' @param x The object to convert.
 #' @param traits Optional units-by-traits table stored alongside the space
 #'   (required by some downstream evaluation functions).
+#' @param correction Correction for negative eigenvalues when converting a
+#'   `dist` object via principal coordinates analysis: `"cailliez"`
+#'   (default), `"lingoes"`, or `"none"`.
 #' @param ... Passed to methods.
 #' @return An object of class `fspace`.
 #' @seealso [fs_space()]

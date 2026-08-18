@@ -4,8 +4,8 @@
 #'
 #' Trims a full space (PCA, PCoA, raw) to the first `dims` axes, or refits
 #' NMDS at `dims` dimensions (NMDS solutions cannot be truncated). Run the
-#' evaluation functions ([fs_dimensionality()], [fs_quality()],
-#' [fs_adequacy()]) before choosing `dims`.
+#' evaluation functions (`fs_dimensionality()`, `fs_quality()`,
+#' `fs_adequacy()`, forthcoming) before choosing `dims`.
 #'
 #' @param space An `fspace` object.
 #' @param dims Number of dimensions to keep (positive integer).

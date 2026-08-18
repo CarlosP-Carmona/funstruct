@@ -1,0 +1,36 @@
+Package: funstruct
+Type: Package
+Title: Functional Structure in Trait Spaces
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Carlos P.", "Carmona",
+           email = "perezcarmonacarlos@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-6935-4913")))
+Description: A unified workflow for trait-based ecology: build trait spaces
+    (principal component analysis, principal coordinates analysis,
+    non-metric multidimensional scaling), evaluate their quality and
+    dimensionality, estimate functional structure using trait probability
+    densities (TPD) and classical indices, and partition functional
+    diversity across nested scales using Rao, Hill-Chao and TPD-based
+    equivalent numbers. Supersedes and extends the 'TPD' and 'funspace'
+    packages.
+License: GPL-3
+URL: https://github.com/CarlosP-Carmona/funstruct
+BugReports: https://github.com/CarlosP-Carmona/funstruct/issues
+Encoding: UTF-8
+Depends: R (>= 4.1)
+Imports:
+    MASS,
+    cluster,
+    stats,
+    graphics,
+    grDevices,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    vegan,
+    ade4
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

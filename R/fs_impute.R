@@ -41,8 +41,11 @@ fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
          "install.packages(\"missForest\").", call. = FALSE)
   }
   traits <- as.data.frame(traits)
-  if (is.null(rownames(traits)) || anyDuplicated(rownames(traits)) > 0L) {
-    stop("`traits` must have unique row names.", call. = FALSE)
+  if (is.null(rownames(traits)) ||
+      anyDuplicated(rownames(traits)) > 0L ||
+      identical(rownames(traits), as.character(seq_len(nrow(traits))))) {
+    stop("`traits` must have unique, informative row names identifying ",
+         "the units.", call. = FALSE)
   }
   na_mask <- is.na(traits)
   if (!any(na_mask)) {

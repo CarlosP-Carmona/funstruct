@@ -68,8 +68,12 @@ fs_itv <- function(space, obs, ids) {
     M2[ids[i], ] <- O[i, ]
     sw <- stats::prcomp(M2, center = TRUE, scale. = scl)
     kk <- min(npc, ncol(sw$rotation))
-    dots <- abs(colSums(ref$rotation[, seq_len(kk), drop = FALSE] *
-                        sw$rotation[, seq_len(kk), drop = FALSE]))
+    v1 <- ref$rotation[, seq_len(kk), drop = FALSE]
+    v2 <- sw$rotation[, seq_len(kk), drop = FALSE]
+    # normalize by the vector norms so identical eigenvectors give exactly
+    # cos = 1 (raw dot products of unit vectors carry machine-precision
+    # noise that acos() amplifies)
+    dots <- abs(colSums(v1 * v2)) / sqrt(colSums(v1^2) * colSums(v2^2))
     angle <- acos(pmin(1, dots)) * 180 / pi
     ratio <- (sw$sdev[seq_len(kk)]^2) / (ref$sdev[seq_len(kk)]^2)
     res[[i]] <- data.frame(species = ids[i], obs = i, pc = seq_len(kk),

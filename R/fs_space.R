@@ -4,8 +4,8 @@
 #'
 #' Builds the full trait space from a units-by-traits table. Dimensionality
 #' is deliberately not chosen here: evaluate the space first (see
-#' `fs_dimensionality()` and `fs_quality()`, forthcoming) and then trim it
-#' with [fs_reduce()] and, for PCA spaces, optionally rotate it with
+#' [fs_dimensionality()] and [fs_quality()]) and then trim it with
+#' [fs_reduce()] and, for PCA spaces, optionally rotate it with
 #' [fs_rotate()].
 #'
 #' @param traits A matrix or data.frame (units x traits) with unique row

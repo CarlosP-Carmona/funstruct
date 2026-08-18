@@ -23,6 +23,7 @@ Depends: R (>= 4.1)
 Imports:
     MASS,
     cluster,
+    ks,
     stats,
     graphics,
     grDevices,

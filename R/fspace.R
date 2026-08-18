@@ -66,9 +66,9 @@ summary.fspace <- function(object, ...) {
     cat("  attachment: ", object$bw$attachment,
         " | selector: ", object$bw$selector, "\n", sep = "")
     if (any(object$bw$imputed)) {
+      imp_names <- names(object$bw$imputed)[object$bw$imputed]
       cat("  imputed widths for ", sum(object$bw$imputed), " unit(s): ",
-          paste(utils::head(rownames(object$coords)[object$bw$imputed], 5L),
-                collapse = ", "),
+          paste(utils::head(imp_names, 5L), collapse = ", "),
           if (sum(object$bw$imputed) > 5L) ", ...", "\n", sep = "")
     }
   }

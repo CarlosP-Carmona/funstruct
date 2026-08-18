@@ -19,6 +19,7 @@ License: GPL-3
 URL: https://github.com/CarlosP-Carmona/funstruct
 BugReports: https://github.com/CarlosP-Carmona/funstruct/issues
 Encoding: UTF-8
+LazyData: true
 Depends: R (>= 4.1)
 Imports:
     MASS,

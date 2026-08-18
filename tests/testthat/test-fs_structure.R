@@ -49,14 +49,18 @@ test_that("prob engine: identical units give redundancy ~ 1", {
 })
 
 test_that("prob engine: single-species assemblage", {
-  sp <- tpd_space()
+  ti <- toy_individuals()
+  spf <- fs_space(ti$traits, method = "raw", scale = FALSE)
+  sp <- fs_tpd(spf, ids = ti$ids)
   comm <- rbind(onlyA = c(spA = 1, spB = 0, spC = 0))
   st <- fs_structure(sp, comm)
   expect_true(is.na(st$mpd))
   expect_true(is.na(st$originality))
-  # CWM of a single species sits near its centroid (0, 0)
-  expect_lt(abs(st$cwm_1), 0.3)
-  expect_lt(abs(st$cwm_2), 0.3)
+  # CWM of a single species sits near that species' centroid in the
+  # (grand-mean-centred) space coordinates
+  ctr <- colMeans(spf$coords[ti$ids == "spA", ])
+  expect_lt(abs(st$cwm_1 - ctr[1L]), 0.2)
+  expect_lt(abs(st$cwm_2 - ctr[2L]), 0.2)
 })
 
 test_that("long-format comm equals the matrix input", {

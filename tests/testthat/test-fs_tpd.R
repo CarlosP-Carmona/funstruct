@@ -111,7 +111,10 @@ test_that("fs_tpd imputes bandwidths for tiny units with a warning", {
   traits <- rbind(ti$traits, extra)
   ids <- c(ti$ids, rep("spTiny", 3L))
   sp <- fs_space(traits, method = "raw", scale = FALSE)
-  expect_warning(tp <- fs_tpd(sp, ids = ids), "average bandwidth")
+  # two warnings are expected: sample-size adequacy and bandwidth imputation
+  w <- capture_warnings(tp <- fs_tpd(sp, ids = ids))
+  expect_match(w, "average bandwidth", all = FALSE)
+  expect_match(w, "fs_adequacy", all = FALSE)
   expect_true(tp$bw$imputed[["spTiny"]])
   expect_equal(sum(tp$tpds$units$spTiny$probs), 1, tolerance = 1e-12)
 })

@@ -32,7 +32,9 @@ Imports:
 Suggests:
     testthat (>= 3.0.0),
     vegan,
-    ade4
+    ade4,
+    missForest,
+    ape
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2

@@ -1,0 +1,91 @@
+# fs_impute(): trait imputation ------------------------------------------------
+
+#' Impute missing trait values
+#'
+#' Random-forest imputation of missing trait values via
+#' \pkg{missForest} (Stekhoven & Buhlmann 2012), optionally informed by
+#' phylogeny through phylogenetic eigenvectors (the funspace approach).
+#' Which values were imputed is recorded in the result and propagated by
+#' [fs_space()] into the space's unit metadata, so imputation is never
+#' invisible downstream.
+#'
+#' This is a convenience wrapper, not an imputation research tool: for
+#' serious gap-filling exercises, evaluate imputation quality for your
+#' data and traits.
+#'
+#' @param traits Data.frame (units x traits) with unique row names;
+#'   numeric and factor columns are supported. Missing values (`NA`) are
+#'   imputed.
+#' @param phylo Optional phylogeny (class `phylo`, \pkg{ape}) whose tip
+#'   labels include all row names of `traits`. Its cophenetic distances
+#'   are converted to eigenvectors used as additional predictors (and
+#'   dropped from the output).
+#' @param n_eigen Number of phylogenetic eigenvectors (default 10, capped
+#'   at units - 1).
+#' @param seed Random seed.
+#' @param ... Passed to [missForest::missForest()].
+#'
+#' @return The completed trait data.frame, with attribute `imputed`: a
+#'   list with `cells` (a units x traits logical matrix marking imputed
+#'   values), `units` (row names with at least one imputed value) and
+#'   `oob` (missForest out-of-bag error estimate).
+#' @references Stekhoven, D.J. & Buhlmann, P. (2012) MissForest:
+#'   non-parametric missing value imputation for mixed-type data.
+#'   *Bioinformatics*, 28, 112-118.
+#' @seealso [fs_space()]
+#' @export
+fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
+                      ...) {
+  if (!requireNamespace("missForest", quietly = TRUE)) {
+    stop("fs_impute() needs the 'missForest' package: ",
+         "install.packages(\"missForest\").", call. = FALSE)
+  }
+  traits <- as.data.frame(traits)
+  if (is.null(rownames(traits)) || anyDuplicated(rownames(traits)) > 0L) {
+    stop("`traits` must have unique row names.", call. = FALSE)
+  }
+  na_mask <- is.na(traits)
+  if (!any(na_mask)) {
+    message("No missing values found; returning `traits` unchanged.")
+    attr(traits, "imputed") <- list(cells = na_mask,
+                                    units = character(0), oob = NULL)
+    return(traits)
+  }
+  ximp_input <- traits
+  eig_cols <- character(0)
+  if (!is.null(phylo)) {
+    if (!requireNamespace("ape", quietly = TRUE)) {
+      stop("Phylogenetic imputation needs the 'ape' package.",
+           call. = FALSE)
+    }
+    if (!inherits(phylo, "phylo")) {
+      stop("`phylo` must be a phylo object.", call. = FALSE)
+    }
+    missing_tips <- setdiff(rownames(traits), phylo$tip.label)
+    if (length(missing_tips)) {
+      stop("Units absent from the phylogeny: ",
+           paste(utils::head(missing_tips, 5L), collapse = ", "),
+           if (length(missing_tips) > 5L) ", ...", call. = FALSE)
+    }
+    ph <- ape::keep.tip(phylo, rownames(traits))
+    pd <- ape::cophenetic.phylo(ph)
+    k <- min(as.integer(n_eigen), nrow(traits) - 1L)
+    pe <- suppressWarnings(
+      stats::cmdscale(stats::as.dist(pd), k = k)
+    )
+    pe <- pe[rownames(traits), , drop = FALSE]
+    eig_cols <- paste0(".phylo", seq_len(ncol(pe)))
+    colnames(pe) <- eig_cols
+    ximp_input <- cbind(traits, as.data.frame(pe))
+  }
+  if (!is.null(seed)) set.seed(seed)
+  fit <- missForest::missForest(ximp_input, ...)
+  out <- fit$ximp[, setdiff(colnames(fit$ximp), eig_cols), drop = FALSE]
+  rownames(out) <- rownames(traits)
+  attr(out, "imputed") <- list(
+    cells = na_mask,
+    units = rownames(traits)[rowSums(na_mask) > 0L],
+    oob = fit$OOBerror
+  )
+  out
+}

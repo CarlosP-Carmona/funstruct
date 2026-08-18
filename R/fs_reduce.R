@@ -10,6 +10,12 @@
 #' @param space An `fspace` object.
 #' @param dims Number of dimensions to keep (positive integer).
 #' @return The reduced `fspace`.
+#' @examples
+#' data(gspff)
+#' sp <- fs_space(gspff[1:300, ], method = "pca")
+#' fs_quality(sp)             # evaluate first...
+#' sp2 <- fs_reduce(sp, 2)    # ...then choose the dimensionality
+#' sp2
 #' @export
 fs_reduce <- function(space, dims) {
   stopifnot(is_fspace(space))
@@ -65,6 +71,11 @@ fs_reduce <- function(space, dims) {
 #' @param space A reduced PCA `fspace`.
 #' @param method Rotation method; only `"varimax"` in this version.
 #' @return The rotated `fspace`.
+#' @examples
+#' data(gspff)
+#' sp2 <- fs_reduce(fs_space(gspff, method = "pca"), 2)
+#' spr <- fs_rotate(sp2)
+#' spr$loadings                # trait loadings on the rotated axes
 #' @export
 fs_rotate <- function(space, method = "varimax") {
   stopifnot(is_fspace(space))

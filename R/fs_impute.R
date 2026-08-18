@@ -33,6 +33,20 @@
 #'   non-parametric missing value imputation for mixed-type data.
 #'   *Bioinformatics*, 28, 112-118.
 #' @seealso [fs_space()]
+#' @examples
+#' \donttest{
+#' data(gspff_missing)
+#' data(gspff_phylo)
+#' set.seed(1)
+#' sub <- gspff_missing[sample(nrow(gspff_missing), 150), ]
+#'
+#' out <- fs_impute(sub, seed = 1)
+#' attr(out, "imputed")$oob            # out-of-bag error estimate
+#'
+#' # informed by the phylogeny:
+#' outp <- fs_impute(sub, phylo = gspff_phylo, n_eigen = 5, seed = 1)
+#' head(attr(outp, "imputed")$units)
+#' }
 #' @export
 fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
                       ...) {

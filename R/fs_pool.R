@@ -31,6 +31,18 @@
 #'   then compare assemblages directly (use an identity community
 #'   matrix).
 #' @seealso [fs_tpd()] for the recommended two-step construction.
+#' @examples
+#' set.seed(1)
+#' tr <- data.frame(t1 = rnorm(60, rep(c(0, 3, 6), each = 20), 0.5),
+#'                  t2 = rnorm(60, rep(c(0, 3, 0), each = 20), 0.5),
+#'                  row.names = paste0("i", 1:60))
+#' ids <- rep(c("a", "b", "c"), each = 20)
+#' sp <- fs_space(tr, method = "raw", scale = FALSE)
+#' comm <- rbind(P = c(a = 1, b = 1, c = 0),
+#'               Q = c(a = 0, b = 1, c = 1))
+#'
+#' pooled <- fs_pool(sp, ids, comm)   # note the warning: this is the
+#' names(pooled$tpds$units)           # approach the package discourages
 #' @export
 fs_pool <- function(space, ids, comm, bw = NULL, grid = NULL,
                     alpha = 0.99) {

@@ -22,6 +22,15 @@
 #'   factors, and the mean relative range across factors). `print()` and
 #'   `plot()` methods are provided.
 #' @seealso [fs_tpd()], [fs_structure()]
+#' @examples
+#' sp <- fs_space(data.frame(size = c(0, 2, 4), shape = c(0, 1, 0),
+#'                           row.names = c("sp1", "sp2", "sp3")),
+#'                method = "raw", scale = FALSE)
+#' tp <- fs_tpd(sp, sds = 0.4)
+#'
+#' sen <- fs_sensitivity(tp, steps = 3, indices = "richness")
+#' sen
+#' plot(sen, index = "richness")
 #' @export
 fs_sensitivity <- function(space, comm = NULL, range = c(0.5, 1.5),
                            steps = 5L, indices = NULL) {

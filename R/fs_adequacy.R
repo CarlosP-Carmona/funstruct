@@ -29,6 +29,13 @@
 #' @references Silverman, B.W. (1986) *Density Estimation for Statistics
 #'   and Data Analysis*. Chapman & Hall. (Table 4.2.)
 #' @seealso [fs_dimensionality()], [fs_quality()]
+#' @examples
+#' fs_adequacy(n = 50, d = 2)   # feasible
+#' fs_adequacy(n = 50, d = 4)   # not feasible
+#'
+#' # per-species sample sizes from the grassland data
+#' data(grassland)
+#' fs_adequacy(n = table(grassland$species), d = 2)
 #' @export
 fs_adequacy <- function(space = NULL, n = NULL, d = NULL) {
   if (!is.null(space)) {

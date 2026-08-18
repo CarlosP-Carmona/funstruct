@@ -38,6 +38,16 @@
 #'   Mouillot, D. (2008) *Ecology*, 89, 2290-2301. Laliberte, E. &
 #'   Legendre, P. (2010) *Ecology*, 91, 299-305.
 #' @seealso [fs_tpd()], [fs_space()]
+#' @examples
+#' sp <- fs_space(data.frame(size = c(0, 2, 4), shape = c(0, 1, 0),
+#'                           row.names = c("sp1", "sp2", "sp3")),
+#'                method = "raw", scale = FALSE)
+#' tp <- fs_tpd(sp, sds = 0.4)
+#' comm <- rbind(A = c(sp1 = 1, sp2 = 1, sp3 = 0),
+#'               B = c(sp1 = 1, sp2 = 1, sp3 = 1))
+#'
+#' fs_structure(tp, comm)                      # probabilistic engine
+#' fs_structure(sp, comm, engine = "points")   # point-based engine
 #' @export
 fs_structure <- function(space, comm = NULL,
                          engine = c("prob", "points"),

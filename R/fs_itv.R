@@ -28,6 +28,19 @@
 #'   Quantifying the influence of intraspecific variability in trait
 #'   spaces. *npj Biodiversity*, 4, 36.
 #' @seealso [fs_space()]
+#' @examples
+#' data(grassland)
+#' top <- names(sort(table(grassland$species), decreasing = TRUE))[1:8]
+#' sub <- grassland[grassland$species %in% top, ]
+#' tr <- data.frame(height = log10(sub$height), sla = log10(sub$sla))
+#'
+#' # between-species space from the species means
+#' means <- aggregate(tr, list(species = sub$species), mean)
+#' m <- means[, -1]
+#' rownames(m) <- means$species
+#' spm <- fs_space(m, method = "pca")
+#'
+#' fs_itv(spm, obs = tr, ids = sub$species)
 #' @export
 fs_itv <- function(space, obs, ids) {
   stopifnot(is_fspace(space))

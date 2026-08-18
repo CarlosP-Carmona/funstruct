@@ -30,6 +30,14 @@
 #' @references Mouillot, D. et al. (2021) The dimensionality and structure
 #'   of species trait spaces. *Ecology Letters*, 24, 1988-2009.
 #' @seealso [fs_quality()], [fs_adequacy()], [fs_reduce()]
+#' @examples
+#' data(gspff)
+#' sp <- fs_space(gspff[1:300, ], method = "pca")
+#' fs_dimensionality(sp, method = "elbow")
+#' dpar <- fs_dimensionality(sp, method = "parallel", n_perm = 49,
+#'                           seed = 1)
+#' dpar
+#' plot(dpar)
 #' @export
 fs_dimensionality <- function(space,
                               method = c("auc", "elbow", "parallel",

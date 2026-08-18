@@ -17,6 +17,13 @@
 #' @return A list of class `fs_grid` describing the grid (cell midpoints,
 #'   steps, cell volume, and the full midpoint matrix in `$cells`).
 #' @seealso [fs_tpd()]
+#' @examples
+#' sp <- fs_space(data.frame(size = c(0, 2, 4), shape = c(0, 1, 0),
+#'                           row.names = c("sp1", "sp2", "sp3")),
+#'                method = "raw", scale = FALSE)
+#' g <- fs_grid(sp, res = 30)
+#' g$n_cells
+#' g$cell_volume
 #' @export
 fs_grid <- function(space, res = NULL, padding = 0.05) {
   stopifnot(is_fspace(space))
@@ -121,6 +128,23 @@ fs_grid <- function(space, res = NULL, padding = 0.05) {
 #'   probability density (TPD): measuring functional diversity across
 #'   scales based on TPD with R. *Ecology*, 100, e02876.
 #' @seealso [fs_grid()], [fs_adequacy()]
+#' @examples
+#' ## Observations route: individuals grouped into species
+#' data(grassland)
+#' top <- names(sort(table(grassland$species), decreasing = TRUE))[1:5]
+#' sub <- grassland[grassland$species %in% top, ]
+#' tr <- data.frame(height = log10(sub$height), sla = log10(sub$sla),
+#'                  row.names = paste0("i", seq_len(nrow(sub))))
+#' sp <- fs_space(tr, method = "raw")
+#' tp <- fs_tpd(sp, ids = sub$species)
+#' summary(tp)
+#'
+#' ## Means route: unit means with an imposed, entity-attached spread
+#' spm <- fs_space(data.frame(size = c(0, 2, 4), shape = c(0, 1, 0),
+#'                            row.names = c("sp1", "sp2", "sp3")),
+#'                 method = "raw", scale = FALSE)
+#' tpm <- fs_tpd(spm, sds = 0.4)
+#' summary(tpm)
 #' @export
 fs_tpd <- function(space, ids = NULL, obs = NULL, sds = NULL,
                    bw = NULL, bw_selector = c("plugin", "silverman"),

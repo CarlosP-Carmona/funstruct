@@ -19,6 +19,16 @@
 #' @return A list of class `fs_redundancy`: `values` (long data.frame:
 #'   assemblage, q, redundancy). `print()` and `plot()` methods provided.
 #' @seealso [fs_structure()]
+#' @examples
+#' sp <- fs_space(data.frame(size = c(0, 0.3, 4), shape = c(0, 0.2, 0),
+#'                           row.names = c("sp1", "sp2", "sp3")),
+#'                method = "raw", scale = FALSE)
+#' tp <- fs_tpd(sp, sds = 0.4)
+#' comm <- rbind(A = c(sp1 = 0.6, sp2 = 0.3, sp3 = 0.1))
+#'
+#' red <- fs_redundancy(tp, comm, q = c(0, 1, 2))
+#' red
+#' plot(red)
 #' @export
 fs_redundancy <- function(space, comm = NULL, q = seq(0, 2, 0.1)) {
   stopifnot(is_fspace(space))
@@ -114,6 +124,16 @@ plot.fs_redundancy <- function(x, ...) {
 #' @return A list of class `fs_itv_contribution`: `full`, `mean_based`
 #'   (both `fstructure`) and `contribution` (data.frame, same shape).
 #' @seealso [fs_itv()] for the effect of ITV on the space itself.
+#' @examples
+#' set.seed(1)
+#' tr <- data.frame(t1 = rnorm(60, rep(c(0, 3, 6), each = 20), 0.5),
+#'                  t2 = rnorm(60, rep(c(0, 3, 0), each = 20), 0.5),
+#'                  row.names = paste0("i", 1:60))
+#' ids <- rep(c("a", "b", "c"), each = 20)
+#' sp <- fs_space(tr, method = "raw", scale = FALSE)
+#' tp <- fs_tpd(sp, ids = ids)
+#'
+#' fs_itv_contribution(tp)
 #' @export
 fs_itv_contribution <- function(space, comm = NULL,
                                 indices = c("richness", "dispersion")) {

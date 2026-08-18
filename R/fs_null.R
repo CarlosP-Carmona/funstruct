@@ -28,6 +28,17 @@
 #'   `p_*` for every index, and an attribute `nulls` with the null means
 #'   and standard deviations.
 #' @seealso [fs_structure()]
+#' @examples
+#' sp <- fs_space(data.frame(size = c(0, 2, 4), shape = c(0, 1, 0),
+#'                           row.names = c("sp1", "sp2", "sp3")),
+#'                method = "raw", scale = FALSE)
+#' tp <- fs_tpd(sp, sds = 0.4)
+#' comm <- rbind(A = c(sp1 = 0.7, sp2 = 0.3, sp3 = 0),
+#'               B = c(sp1 = 0.2, sp2 = 0.3, sp3 = 0.5))
+#'
+#' st <- fs_null(tp, comm, indices = c("richness", "dispersion"),
+#'               n = 49, seed = 1)
+#' st[, c("richness", "ses_richness", "p_richness")]
 #' @export
 fs_null <- function(space, comm = NULL, engine = c("prob", "points"),
                     indices = NULL,

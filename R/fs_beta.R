@@ -32,6 +32,18 @@
 #'   (2019) Trait probability density (TPD): measuring functional
 #'   diversity across scales based on TPD with R. *Ecology*, 100, e02876.
 #' @seealso [fs_partition()], [fs_structure()]
+#' @examples
+#' sp <- fs_space(data.frame(size = c(0, 2, 4), shape = c(0, 1, 0),
+#'                           row.names = c("sp1", "sp2", "sp3")),
+#'                method = "raw", scale = FALSE)
+#' tp <- fs_tpd(sp, sds = 0.4)
+#' comm <- rbind(A = c(sp1 = 1, sp2 = 1, sp3 = 0),
+#'               B = c(sp1 = 0, sp2 = 1, sp3 = 1),
+#'               C = c(sp1 = 1, sp2 = 1, sp3 = 1))
+#'
+#' b <- fs_beta(tp, comm)
+#' b$dissimilarity
+#' b$P_non_shared   # part of the dissimilarity from non-shared space
 #' @export
 fs_beta <- function(space, comm, engine = c("prob", "points"),
                     decompose = TRUE) {

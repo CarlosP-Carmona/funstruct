@@ -29,6 +29,14 @@
 #' @return An object of class `fspace`.
 #' @seealso [as_fspace()] to import existing ordinations, [fs_reduce()],
 #'   [fs_rotate()].
+#' @examples
+#' data(gspff)
+#' sp <- fs_space(gspff, method = "pca")
+#' sp
+#' plot(sp)
+#'
+#' # PCoA from Gower dissimilarities (mixed trait types allowed)
+#' sp2 <- fs_space(gspff[1:150, ], method = "pcoa")
 #' @export
 fs_space <- function(traits,
                      method = c("pca", "pcoa", "nmds", "raw"),

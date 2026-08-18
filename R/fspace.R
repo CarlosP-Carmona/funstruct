@@ -32,6 +32,10 @@ new_fspace <- function(coords, method, traits, units,
 #'
 #' @param x An object.
 #' @return `TRUE` if `x` inherits from class `fspace`.
+#' @examples
+#' data(gspff)
+#' is_fspace(fs_space(gspff[1:50, ], method = "pca"))
+#' is_fspace(gspff)
 #' @export
 is_fspace <- function(x) inherits(x, "fspace")
 

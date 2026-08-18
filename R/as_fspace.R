@@ -15,6 +15,15 @@
 #' @param ... Passed to methods.
 #' @return An object of class `fspace`.
 #' @seealso [fs_space()]
+#' @examples
+#' data(gspff)
+#' p <- prcomp(gspff, center = TRUE, scale. = TRUE)
+#' sp <- as_fspace(p, traits = gspff)
+#' sp
+#'
+#' # from a distance matrix (PCoA)
+#' d <- dist(scale(gspff[1:100, ]))
+#' as_fspace(d)
 #' @export
 as_fspace <- function(x, ...) UseMethod("as_fspace")
 

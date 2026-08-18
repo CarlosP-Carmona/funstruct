@@ -9,6 +9,10 @@
 #'   with one entry per assemblage.
 #' @return A data.frame of class `fs_hierarchy`.
 #' @seealso [fs_partition()]
+#' @examples
+#' # four assemblages in two sites within one region
+#' fs_hierarchy(site = c("s1", "s1", "s2", "s2"),
+#'              region = c("r1", "r1", "r1", "r1"))
 #' @export
 fs_hierarchy <- function(...) {
   args <- list(...)
@@ -70,6 +74,23 @@ fs_hierarchy <- function(...) {
 #'   showing Theseus a way out of the labyrinth. *Journal of Vegetation
 #'   Science*, 21, 992-1000.
 #' @seealso [fs_hierarchy()], [fs_structure()], [fs_tpd()]
+#' @examples
+#' sp <- fs_space(data.frame(size = c(0, 2, 4), shape = c(0, 1, 0),
+#'                           row.names = c("sp1", "sp2", "sp3")),
+#'                method = "raw", scale = FALSE)
+#' tp <- fs_tpd(sp, sds = 0.4)
+#' comm <- rbind(A1 = c(sp1 = 1, sp2 = 0, sp3 = 0),
+#'               A2 = c(sp1 = 0, sp2 = 1, sp3 = 0),
+#'               A3 = c(sp1 = 0, sp2 = 0, sp3 = 1),
+#'               A4 = c(sp1 = 1, sp2 = 1, sp3 = 1))
+#' h <- fs_hierarchy(site = c("s1", "s1", "s2", "s2"))
+#'
+#' fs_partition(tp, comm, hierarchy = h, method = "tpd_eqv", q = 0)
+#' fs_partition(tp, comm, hierarchy = h, method = "rao")
+#'
+#' # full q-profile of the equivalent numbers
+#' pt <- fs_partition(tp, comm, method = "tpd_eqv", profile = TRUE)
+#' plot(pt)
 #' @export
 fs_partition <- function(space, comm, hierarchy = NULL,
                          method = c("rao", "hill", "tpd_eqv"),

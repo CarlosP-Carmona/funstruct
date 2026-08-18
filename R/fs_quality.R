@@ -23,6 +23,10 @@
 #'   diversity? A pragmatic approach for assessing the quality of
 #'   functional spaces. *Global Ecology and Biogeography*, 24, 728-740.
 #' @seealso [fs_dimensionality()], [fs_reduce()]
+#' @examples
+#' data(gspff)
+#' sp <- fs_space(gspff[1:300, ], method = "pca")
+#' fs_quality(sp)
 #' @export
 fs_quality <- function(space, dims = NULL) {
   stopifnot(is_fspace(space))

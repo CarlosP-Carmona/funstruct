@@ -21,6 +21,12 @@
 #' @return A list of class `fs_compare` with the statistic(s), the method,
 #'   and the number of shared units.
 #' @seealso [fs_quality()]
+#' @examples
+#' data(gspff)
+#' s1 <- fs_space(gspff[1:200, ], method = "pca")
+#' s2 <- fs_space(gspff[1:200, ], method = "pcoa")
+#' fs_compare(s1, s2)
+#' fs_compare(s1, s2, method = "correlation")
 #' @export
 fs_compare <- function(space1, space2,
                        method = c("procrustes", "correlation"),

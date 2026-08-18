@@ -165,7 +165,8 @@ fs_tpd <- function(space, ids = NULL, obs = NULL, sds = NULL,
 
   space$tpds <- list(grid = grid, alpha = alpha, units = units_tpd,
                      n_obs = vapply(est$X, nrow, integer(1L)),
-                     route = est$route)
+                     route = est$route,
+                     X = est$X)
   space$bw <- list(attachment = est$attachment, selector = est$selector,
                    values = est$H, imputed = est$imputed)
   space

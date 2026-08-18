@@ -26,6 +26,7 @@ Imports:
     cluster,
     geometry,
     ks,
+    parallel,
     stats,
     graphics,
     grDevices,

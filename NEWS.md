@@ -13,7 +13,10 @@
   from individual observations -- the entry point of the mean-based
   workflow (space from means, individuals projected via `fs_project()` or
   `fs_tpd(obs = , ids = )`).
-* `fs_project(add = TRUE)` now skips units already present in the space
-  (with a warning) instead of erroring; the space's own coordinates win.
+* `fs_project()` recognises `fs_impute()` output and projects only the
+  units with imputed values (fully empirical units are skipped with a
+  message; subset the object to override). With `add = TRUE`, units
+  already present in the space are skipped with a warning instead of
+  erroring; the space's own coordinates win.
 * The `imputed` attribute of `fs_impute()` renames its `units` element to
   `imputed`, matching the `complete` element.

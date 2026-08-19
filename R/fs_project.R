@@ -20,7 +20,12 @@
 #' @param space A PCA `fspace` (from [fs_space()], possibly after
 #'   [fs_reduce()] / [fs_rotate()]).
 #' @param newdata Data.frame or matrix of new units (rows) with the same
-#'   trait columns as the space, and unique row names.
+#'   trait columns as the space, and unique row names. If `newdata` comes
+#'   from [fs_impute()] (it carries the `imputed` attribute), only the
+#'   units with at least one imputed value are projected: the fully
+#'   empirical units are the material the space should be built from, not
+#'   projected into it (a message reports how many were skipped). To
+#'   override, subset the object first (subsetting drops the attribute).
 #' @param add Logical; if `TRUE`, return the `fspace` with the projected
 #'   units appended to its coordinates (flagged `projected` in the unit
 #'   metadata) instead of the bare coordinate matrix. Units whose names
@@ -51,6 +56,23 @@ fs_project <- function(space, newdata, add = FALSE) {
   }
   traits_ref <- names(space$center)
   nd <- as.data.frame(newdata)
+  imp <- attr(newdata, "imputed")
+  if (!is.null(imp) && !is.null(imp$imputed)) {
+    keep_imp <- intersect(rownames(nd), imp$imputed)
+    n_skip <- nrow(nd) - length(keep_imp)
+    if (!length(keep_imp)) {
+      stop("`newdata` comes from fs_impute() but contains no units with ",
+           "imputed values; there is nothing to project. (Fully empirical ",
+           "units belong in the space itself, not projected into it.)",
+           call. = FALSE)
+    }
+    if (n_skip > 0L) {
+      message("Projecting the ", length(keep_imp), " unit(s) with imputed ",
+              "values; ", n_skip, " fully empirical unit(s) skipped (see ",
+              "attr(newdata, \"imputed\")$complete).")
+    }
+    nd <- nd[keep_imp, , drop = FALSE]
+  }
   missing_tr <- setdiff(traits_ref, colnames(nd))
   if (length(missing_tr)) {
     stop("`newdata` lacks trait column(s): ",
@@ -93,7 +115,6 @@ fs_project <- function(space, newdata, add = FALSE) {
   new_units <- data.frame(id = rownames(co), n_obs = 1L,
                           has_own_obs = FALSE, imputed_traits = FALSE,
                           projected = TRUE, stringsAsFactors = FALSE)
-  imp <- attr(newdata, "imputed")
   if (!is.null(imp)) {
     new_units$imputed_traits <- new_units$id %in% imp$imputed
   }

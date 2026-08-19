@@ -138,6 +138,31 @@ test_that("fs_project add = TRUE skips units already in the space", {
   expect_identical(nrow(sp3$coords), nrow(sp$coords))
 })
 
+test_that("fs_project projects only the imputed subset of fs_impute output", {
+  x <- toy_traits()
+  sp <- fs_reduce(fs_space(x[1:20, ], method = "pca"), 2L)
+  nd <- toy_traits(n = 10L, seed = 42L)
+  rownames(nd) <- paste0("u", 1:10)
+  attr(nd, "imputed") <- list(cells = NULL,
+                              imputed = paste0("u", 1:4),
+                              complete = paste0("u", 5:10),
+                              oob = NULL)
+  expect_message(co <- fs_project(sp, nd), "skipped")
+  expect_identical(rownames(co), paste0("u", 1:4))
+  # add = TRUE appends (and flags) only the imputed subset
+  expect_message(sp2 <- fs_project(sp, nd, add = TRUE), "skipped")
+  expect_identical(nrow(sp2$coords), 24L)
+  expect_setequal(sp2$units$id[sp2$units$projected], paste0("u", 1:4))
+  expect_true(all(sp2$units$imputed_traits[sp2$units$projected]))
+  # nothing imputed -> nothing to project
+  attr(nd, "imputed")$imputed <- character(0)
+  expect_error(fs_project(sp, nd), "nothing to project")
+  # subsetting drops the attribute, so everything projects again
+  nd2 <- nd[1:10, ]
+  co2 <- fs_project(sp, nd2)
+  expect_identical(nrow(co2), 10L)
+})
+
 test_that("fs_means aggregates observations into unit means", {
   set.seed(5)
   ids <- rep(c("spA", "spB", "spC"), times = c(4L, 3L, 1L))

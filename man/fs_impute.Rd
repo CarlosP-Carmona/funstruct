@@ -26,7 +26,7 @@ at units - 1).}
 \value{
 The completed trait data.frame, with attribute \code{imputed}: a
 list with \code{cells} (a units x traits logical matrix marking imputed
-values), \code{units} (row names with at least one imputed value),
+values), \code{imputed} (row names with at least one imputed value),
 \code{complete} (row names that were fully empirical, useful to build a
 space from empirical data only and project the rest with
 \code{\link[=fs_project]{fs_project()}}) and \code{oob} (missForest out-of-bag error estimate).
@@ -56,7 +56,7 @@ attr(out, "imputed")$oob            # out-of-bag error estimate
 
 # informed by the phylogeny:
 outp <- fs_impute(sub, phylo = gspff_phylo, n_eigen = 5, seed = 1)
-head(attr(outp, "imputed")$units)
+head(attr(outp, "imputed")$imputed)
 
 # recommended workflow: build the space from EMPIRICAL data only and
 # project the imputed species into it (same centring and scaling):

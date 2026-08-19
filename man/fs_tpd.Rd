@@ -68,8 +68,10 @@ individual observations and \code{ids} assigns each row to a unit (e.g.
 individuals to species). Each unit's TPD is a multivariate kernel
 density estimate of its own observations, with the bandwidth selected
 per unit from its full data (plug-in by default) and never re-selected
-on subsets. Alternatively, \code{obs} can supply new individual-level trait
-values to be projected into a PCA space built on other units.
+on subsets. Alternatively, \code{obs} can supply individual-level trait
+values to be projected into a PCA space built on other rows --
+typically a space built on one mean per unit (see \code{\link[=fs_means]{fs_means()}}), so
+that unequal replication among units does not shape the axes.
 
 \strong{Means with imposed spread} (\code{sds} supplied, no \code{ids}): the rows of
 the space are unit means (e.g. species mean traits) and \code{sds} gives the
@@ -110,5 +112,5 @@ probability density (TPD): measuring functional diversity across
 scales based on TPD with R. \emph{Ecology}, 100, e02876.
 }
 \seealso{
-\code{\link[=fs_grid]{fs_grid()}}, \code{\link[=fs_adequacy]{fs_adequacy()}}
+\code{\link[=fs_grid]{fs_grid()}}, \code{\link[=fs_adequacy]{fs_adequacy()}}, \code{\link[=fs_means]{fs_means()}}
 }

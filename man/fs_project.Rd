@@ -15,7 +15,10 @@ trait columns as the space, and unique row names.}
 
 \item{add}{Logical; if \code{TRUE}, return the \code{fspace} with the projected
 units appended to its coordinates (flagged \code{projected} in the unit
-metadata) instead of the bare coordinate matrix.}
+metadata) instead of the bare coordinate matrix. Units whose names
+are already present in the space are not appended: the coordinates
+the space was built with take precedence (with a warning listing the
+skipped units).}
 }
 \value{
 A matrix of coordinates for the new units (default), or the
@@ -34,6 +37,9 @@ spaces.
 This supports the recommended imputation workflow: build the space
 from empirical measurements only, then project imputed species into it
 rather than letting imputed values shape the axes (see \code{\link[=fs_impute]{fs_impute()}}).
+The same logic handles unbalanced individual-level sampling: build the
+space on one mean per unit (\code{\link[=fs_means]{fs_means()}}) so every unit weighs equally
+in the ordination, then project the individual observations into it.
 }
 \examples{
 data(gspff)
@@ -46,5 +52,5 @@ sp2 <- fs_project(sp, gspff[501:520, ], add = TRUE)
 tail(sp2$units)
 }
 \seealso{
-\code{\link[=fs_impute]{fs_impute()}}, \code{\link[=fs_space]{fs_space()}}
+\code{\link[=fs_impute]{fs_impute()}}, \code{\link[=fs_means]{fs_means()}}, \code{\link[=fs_space]{fs_space()}}
 }

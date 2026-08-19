@@ -41,15 +41,46 @@ test_that("fs_rotate requires a reduced PCA space", {
   expect_error(fs_rotate(fs_reduce(pco, 3L)), "PCA")
 })
 
-test_that("fs_rotate returns an orthogonal rotation of the scores", {
+test_that("fs_rotate rigid (default) preserves geometry exactly", {
   sp <- fs_reduce(fs_space(toy_traits(), method = "pca"), 3L)
   rot <- fs_rotate(sp)
-  expect_identical(rot$rotation, "varimax")
-  # rotation preserves total variance of the retained axes
-  expect_equal(sum(apply(rot$coords, 2L, var)),
-               sum(apply(sp$coords, 2L, var)))
-  # and preserves pairwise distances between units
+  expect_identical(rot$rotation_type, "rigid")
+  # orthogonal rotation matrix
+  expect_equal(crossprod(rot$rotmat), diag(3L), ignore_attr = TRUE)
+  # all pairwise distances are untouched
   expect_equal(dist(rot$coords), dist(sp$coords), ignore_attr = TRUE)
+  # total variance preserved (trace invariance)
+  expect_equal(sum(rot$eig_rotated), sum(unname(sp$eig)),
+               tolerance = 1e-10)
+  # loadings are exactly the trait-score correlations (scale = TRUE)
+  expect_equal(unname(stats::cor(as.matrix(sp$traits), rot$coords)),
+               unname(rot$loadings), tolerance = 1e-10)
+  # projecting the original traits reproduces the rotated coordinates
+  pr <- fs_project(rot, sp$traits)
+  expect_equal(pr, rot$coords, tolerance = 1e-8)
+  # a second rotation is refused
+  expect_error(fs_rotate(rot), "already rotated")
+})
+
+test_that("fs_rotate rescaled follows the factor-analytic convention", {
+  sp <- fs_reduce(fs_space(toy_traits(), method = "pca"), 3L)
+  rot <- fs_rotate(sp, type = "rescaled")
+  expect_identical(rot$rotation, "varimax")
+  # the rotation matrix is orthogonal
+  expect_equal(crossprod(rot$rotmat), diag(3L), ignore_attr = TRUE)
+  # total variance is redistributed, not created or lost
+  expect_equal(sum(rot$eig_rotated), sum(unname(sp$eig)),
+               tolerance = 1e-10)
+  # the loading structure (communalities) is invariant under rotation
+  expect_equal(rot$loadings %*% t(rot$loadings),
+               sp$loadings %*% t(sp$loadings),
+               tolerance = 1e-10, ignore_attr = TRUE)
+  # rotated scores have variance equal to the rotated SS loadings
+  cvar <- apply(rot$coords, 2L, function(z) mean((z - mean(z))^2))
+  expect_equal(unname(cvar), unname(rot$eig_rotated), tolerance = 1e-8)
+  # projecting the original traits reproduces the rotated coordinates
+  pr <- fs_project(rot, sp$traits)
+  expect_equal(pr, rot$coords, tolerance = 1e-8)
 })
 
 test_that("reduction drops stale TPDs with a warning", {

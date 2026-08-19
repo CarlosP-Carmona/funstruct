@@ -35,9 +35,17 @@ as_fspace.prcomp <- function(x, traits = NULL, ...) {
     stop("The prcomp object has no row names; refit with named data.",
          call. = FALSE)
   }
+  V <- x$rotation
+  scl <- if (identical(x$scale, FALSE)) {
+    stats::setNames(rep(1, length(x$center)), names(x$center))
+  } else {
+    x$scale
+  }
   new_fspace(coords = coords, method = "pca",
              traits = traits, units = .units_from(coords),
-             loadings = x$rotation, eig = x$sdev^2,
+             loadings = t(x$sdev * t(V)), eigenvectors = V,
+             eig = unname(x$sdev^2), center = x$center,
+             scale_values = scl, proj = V,
              scale = !identical(x$scale, FALSE), call = match.call())
 }
 
@@ -45,9 +53,16 @@ as_fspace.prcomp <- function(x, traits = NULL, ...) {
 #' @export
 as_fspace.princomp <- function(x, traits = NULL, ...) {
   coords <- x$scores
+  colnames(coords) <- paste0("PC", seq_len(ncol(coords)))
+  V <- unclass(x$loadings)
+  colnames(V) <- colnames(coords)
+  loadings <- t(x$sdev * t(V))
+  colnames(loadings) <- colnames(coords)
   new_fspace(coords = coords, method = "pca",
              traits = traits, units = .units_from(coords),
-             loadings = unclass(x$loadings), eig = x$sdev^2,
+             loadings = loadings, eigenvectors = V,
+             eig = unname(x$sdev^2), center = x$center,
+             scale_values = x$scale, proj = V,
              scale = NA, call = match.call())
 }
 

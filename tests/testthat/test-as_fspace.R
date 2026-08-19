@@ -8,12 +8,19 @@ toy_traits <- function(n = 30L, p = 5L, seed = 1L) {
   as.data.frame(m)
 }
 
-test_that("as_fspace.prcomp matches fs_space PCA", {
+test_that("prcomp and princomp imports agree with fs_space", {
   x <- toy_traits()
   ref <- fs_space(x, method = "pca")
-  imp <- as_fspace(prcomp(as.matrix(x), center = TRUE, scale. = TRUE))
-  expect_equal(imp$coords, ref$coords)
-  expect_equal(imp$eig, ref$eig)
+  # princomp import is exactly fs_space's backend
+  imp2 <- as_fspace(princomp(as.matrix(x), cor = TRUE))
+  expect_equal(unname(imp2$coords), unname(ref$coords))
+  expect_equal(unname(imp2$loadings), unname(ref$loadings))
+  # prcomp uses the n-1 divisor: same configuration up to a constant
+  imp1 <- as_fspace(prcomp(as.matrix(x), center = TRUE, scale. = TRUE))
+  cmp <- fs_compare(imp1, ref)
+  expect_lt(cmp$m2, 1e-10)
+  # both importers expose true loadings (squared sums = eigenvalues)
+  expect_equal(unname(colSums(imp1$loadings^2)), unname(imp1$eig))
 })
 
 test_that("as_fspace.dist performs PCoA", {

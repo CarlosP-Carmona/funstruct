@@ -71,18 +71,24 @@ fs_itv <- function(space, obs, ids) {
          call. = FALSE)
   }
   scl <- !identical(space$scale, FALSE)
+  if (nrow(M) <= ncol(M)) {
+    stop("The swapping procedure uses princomp, which requires more ",
+         "species than traits.", call. = FALSE)
+  }
 
-  ref <- stats::prcomp(M, center = TRUE, scale. = scl)
-  npc <- ncol(ref$rotation)
+  ref <- stats::princomp(M, cor = scl)
+  ref_V <- unclass(ref$loadings)
+  npc <- ncol(ref_V)
 
   res <- vector("list", nrow(O))
   for (i in seq_len(nrow(O))) {
     M2 <- M
     M2[ids[i], ] <- O[i, ]
-    sw <- stats::prcomp(M2, center = TRUE, scale. = scl)
-    kk <- min(npc, ncol(sw$rotation))
-    v1 <- ref$rotation[, seq_len(kk), drop = FALSE]
-    v2 <- sw$rotation[, seq_len(kk), drop = FALSE]
+    sw <- stats::princomp(M2, cor = scl)
+    sw_V <- unclass(sw$loadings)
+    kk <- min(npc, ncol(sw_V))
+    v1 <- ref_V[, seq_len(kk), drop = FALSE]
+    v2 <- sw_V[, seq_len(kk), drop = FALSE]
     # normalize by the vector norms so identical eigenvectors give exactly
     # cos = 1 (raw dot products of unit vectors carry machine-precision
     # noise that acos() amplifies)

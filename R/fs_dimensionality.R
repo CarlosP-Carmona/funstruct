@@ -110,21 +110,23 @@ plot.fs_dimensionality <- function(x, ...) {
          call. = FALSE)
   }
   scl <- !identical(space$scale, FALSE)
-  Z <- base::scale(as.matrix(space$traits), center = TRUE, scale = scl)
-  obs <- space$eig
-  p <- ncol(Z)
+  M <- as.matrix(space$traits)
+  cmat <- if (scl) stats::cor(M) else stats::cov(M)
+  obs <- eigen(cmat, symmetric = TRUE, only.values = TRUE)$values
+  p <- ncol(M)
   null_eig <- matrix(NA_real_, n_perm, p)
   for (b in seq_len(n_perm)) {
-    Zp <- apply(Z, 2L, sample)
-    null_eig[b, ] <- stats::prcomp(Zp, center = TRUE, scale. = FALSE)$sdev^2
+    Mp <- apply(M, 2L, sample)
+    cp <- if (scl) stats::cor(Mp) else stats::cov(Mp)
+    null_eig[b, ] <- eigen(cp, symmetric = TRUE, only.values = TRUE)$values
   }
   thr <- apply(null_eig, 2L, stats::quantile, probs = 0.95)
-  keep <- obs[seq_len(p)] > thr
+  keep <- obs > thr
   sug <- if (!keep[1L]) NA_integer_ else
     which(!c(keep, FALSE))[1L] - 1L  # leading run of TRUE
   list(suggested = sug,
        curve = data.frame(axis = seq_len(p),
-                          eigenvalue = obs[seq_len(p)],
+                          eigenvalue = obs,
                           null95 = thr))
 }
 

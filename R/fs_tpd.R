@@ -301,21 +301,12 @@ fs_tpd <- function(space, ids = NULL, obs = NULL, sds = NULL,
 }
 
 .project_obs <- function(space, obs) {
-  M <- as.matrix(space$traits)
-  missing_tr <- setdiff(colnames(M), colnames(obs))
-  if (length(missing_tr)) {
-    stop("`obs` lacks trait column(s): ",
-         paste(missing_tr, collapse = ", "), call. = FALSE)
+  obs <- as.data.frame(obs)
+  if (is.null(rownames(obs)) ||
+      identical(rownames(obs), as.character(seq_len(nrow(obs))))) {
+    rownames(obs) <- paste0("obs", seq_len(nrow(obs)))
   }
-  O <- as.matrix(as.data.frame(obs)[, colnames(M), drop = FALSE])
-  if (anyNA(O)) {
-    stop("`obs` contains missing values; impute first.", call. = FALSE)
-  }
-  scl <- !identical(space$scale, FALSE)
-  ctr <- colMeans(M)
-  sc <- if (scl) apply(M, 2L, stats::sd) else rep(1, ncol(M))
-  Z <- sweep(sweep(O, 2L, ctr), 2L, sc, "/")
-  Z %*% space$loadings
+  fs_project(space, obs)
 }
 
 .select_bw <- function(Xu, selector) {

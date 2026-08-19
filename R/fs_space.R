@@ -13,8 +13,14 @@
 #'   columns must be numeric for `method = "pca"`, `"nmds"` and `"raw"`;
 #'   mixed types are allowed for `method = "pcoa"` (Gower dissimilarity is
 #'   used internally via [cluster::daisy()]).
-#' @param method Ordination method: `"pca"` (default), `"pcoa"`, `"nmds"`,
-#'   or `"raw"` (scaled trait axes used directly).
+#' @param method Ordination method: `"pca"` (default; via
+#'   [stats::princomp()], which requires more units than traits),
+#'   `"pcoa"`, `"nmds"`, or `"raw"` (scaled trait axes used directly).
+#'   For PCA spaces the returned object stores both `$loadings` (the
+#'   eigenvectors scaled by the component standard deviations, i.e. the
+#'   trait-axis correlations when `scale = TRUE` -- loadings in the
+#'   factor-analytic sense) and `$eigenvectors` (the unit-norm
+#'   eigenvectors used internally for projection).
 #' @param scale Logical; scale traits to unit variance (default `TRUE`).
 #'   Ignored for `method = "pcoa"` with mixed data (Gower scales internally).
 #' @param dist Optional distance object (`dist`, e.g. from [stats::dist()] or
@@ -67,8 +73,11 @@ fs_space <- function(traits,
 
   new_fspace(
     coords = out$coords, method = method, traits = traits, units = units,
-    loadings = out$loadings, eig = out$eig, stress = out$stress,
-    dist = out$dist, scale = scale, call = match.call()
+    loadings = out$loadings, eigenvectors = out$eigenvectors,
+    eig = out$eig, center = out$center,
+    scale_values = out$scale_values, proj = out$proj,
+    stress = out$stress, dist = out$dist, scale = scale,
+    call = match.call()
   )
 }
 
@@ -76,13 +85,23 @@ fs_space <- function(traits,
 
 .space_pca <- function(x, scale) {
   m <- as.matrix(x)
-  p <- stats::prcomp(m, center = TRUE, scale. = scale)
-  coords <- p$x
+  if (nrow(m) <= ncol(m)) {
+    stop("PCA (princomp) requires more units than traits (got ",
+         nrow(m), " units x ", ncol(m), " traits).", call. = FALSE)
+  }
+  p <- stats::princomp(m, cor = scale)
+  V <- unclass(p$loadings)          # unit eigenvectors
+  coords <- p$scores
   colnames(coords) <- paste0("PC", seq_len(ncol(coords)))
-  loadings <- p$rotation
+  colnames(V) <- colnames(coords)
+  # loadings sensu factor analysis: eigenvectors scaled by the component
+  # standard deviations (= trait-axis correlations when cor = TRUE);
+  # same convention as funspace: t(sdev * t(loadings))
+  loadings <- t(p$sdev * t(V))
   colnames(loadings) <- colnames(coords)
-  list(coords = coords, loadings = loadings, eig = p$sdev^2,
-       stress = NULL, dist = NULL)
+  list(coords = coords, loadings = loadings, eigenvectors = V,
+       eig = unname(p$sdev^2), center = p$center,
+       scale_values = p$scale, proj = V, stress = NULL, dist = NULL)
 }
 
 .space_pcoa <- function(x, d, correction) {

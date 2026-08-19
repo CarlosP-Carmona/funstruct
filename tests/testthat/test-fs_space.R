@@ -8,22 +8,46 @@ toy_traits <- function(n = 30L, p = 5L, seed = 1L) {
   as.data.frame(m)
 }
 
-test_that("PCA space matches prcomp exactly", {
+test_that("PCA space matches princomp and returns true loadings", {
   x <- toy_traits()
   sp <- fs_space(x, method = "pca")
-  ref <- prcomp(as.matrix(x), center = TRUE, scale. = TRUE)
+  ref <- princomp(as.matrix(x), cor = TRUE)
   expect_s3_class(sp, "fspace")
-  expect_equal(unname(sp$coords), unname(ref$x))
-  expect_equal(unname(sp$loadings), unname(ref$rotation))
-  expect_equal(sp$eig, ref$sdev^2)
+  expect_equal(unname(sp$coords), unname(ref$scores))
+  expect_equal(unname(sp$eig), unname(ref$sdev^2))
+  expect_equal(unname(sp$eigenvectors), unname(unclass(ref$loadings)))
+  # loadings = eigenvectors scaled by component sdev (funspace convention)
+  expect_equal(unname(sp$loadings),
+               unname(t(ref$sdev * t(unclass(ref$loadings)))))
+  # squared loadings sum to the eigenvalue of each axis
+  expect_equal(unname(colSums(sp$loadings^2)), unname(sp$eig))
+  # with cor = TRUE, loadings are exactly the trait-axis correlations
+  expect_equal(unname(stats::cor(as.matrix(x), sp$coords)),
+               unname(sp$loadings), tolerance = 1e-10)
   expect_identical(rownames(sp$coords), rownames(x))
 })
 
-test_that("PCA respects scale = FALSE", {
+test_that("PCA respects scale = FALSE and requires n > p", {
   x <- toy_traits()
   sp <- fs_space(x, method = "pca", scale = FALSE)
-  ref <- prcomp(as.matrix(x), center = TRUE, scale. = FALSE)
-  expect_equal(unname(sp$coords), unname(ref$x))
+  ref <- princomp(as.matrix(x), cor = FALSE)
+  expect_equal(unname(sp$coords), unname(ref$scores))
+  wide <- toy_traits(n = 4L, p = 6L)
+  expect_error(fs_space(wide, method = "pca"), "more units than traits")
+})
+
+test_that("fs_project reproduces the space's own coordinates", {
+  x <- toy_traits()
+  sp <- fs_reduce(fs_space(x, method = "pca"), 2L)
+  pr <- fs_project(sp, x)
+  expect_equal(pr, sp$coords, tolerance = 1e-10)
+  # appending new units flags them in the metadata
+  new <- toy_traits(n = 5L, seed = 99L)
+  rownames(new) <- paste0("new", 1:5)
+  sp2 <- fs_project(sp, new, add = TRUE)
+  expect_identical(nrow(sp2$coords), 35L)
+  expect_identical(sum(sp2$units$projected), 5L)
+  expect_error(fs_project(sp, x[, 1:3]), "lacks trait")
 })
 
 test_that("PCoA reproduces cmdscale with Cailliez correction", {

@@ -27,8 +27,10 @@
 #'
 #' @return The completed trait data.frame, with attribute `imputed`: a
 #'   list with `cells` (a units x traits logical matrix marking imputed
-#'   values), `units` (row names with at least one imputed value) and
-#'   `oob` (missForest out-of-bag error estimate).
+#'   values), `units` (row names with at least one imputed value),
+#'   `complete` (row names that were fully empirical, useful to build a
+#'   space from empirical data only and project the rest with
+#'   [fs_project()]) and `oob` (missForest out-of-bag error estimate).
 #' @references Stekhoven, D.J. & Buhlmann, P. (2012) MissForest:
 #'   non-parametric missing value imputation for mixed-type data.
 #'   *Bioinformatics*, 28, 112-118.
@@ -46,6 +48,13 @@
 #' # informed by the phylogeny:
 #' outp <- fs_impute(sub, phylo = gspff_phylo, n_eigen = 5, seed = 1)
 #' head(attr(outp, "imputed")$units)
+#'
+#' # recommended workflow: build the space from EMPIRICAL data only and
+#' # project the imputed species into it (same centring and scaling):
+#' data(gspff)
+#' sp <- fs_reduce(fs_space(gspff, method = "pca"), 2)
+#' proj <- fs_project(sp, out)
+#' head(proj)
 #' }
 #' @export
 fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
@@ -65,7 +74,9 @@ fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
   if (!any(na_mask)) {
     message("No missing values found; returning `traits` unchanged.")
     attr(traits, "imputed") <- list(cells = na_mask,
-                                    units = character(0), oob = NULL)
+                                    units = character(0),
+                                    complete = rownames(traits),
+                                    oob = NULL)
     return(traits)
   }
   ximp_input <- traits
@@ -102,6 +113,7 @@ fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
   attr(out, "imputed") <- list(
     cells = na_mask,
     units = rownames(traits)[rowSums(na_mask) > 0L],
+    complete = rownames(traits)[rowSums(na_mask) == 0L],
     oob = fit$OOBerror
   )
   out

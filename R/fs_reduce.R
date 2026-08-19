@@ -49,8 +49,10 @@ fs_reduce <- function(space, dims) {
   } else {
     space$dims_full <- d_now
     space$coords <- space$coords[, seq_len(dims), drop = FALSE]
-    if (!is.null(space$loadings)) {
-      space$loadings <- space$loadings[, seq_len(dims), drop = FALSE]
+    for (slot in c("loadings", "eigenvectors", "proj")) {
+      if (!is.null(space[[slot]])) {
+        space[[slot]] <- space[[slot]][, seq_len(dims), drop = FALSE]
+      }
     }
     if (!is.null(space$eig)) {
       space$eig_full <- space$eig
@@ -66,20 +68,47 @@ fs_reduce <- function(space, dims) {
 #' Applies varimax rotation to the retained axes of a reduced PCA space.
 #' Rotation is only meaningful after reduction (rotating the full space and
 #' then truncating gives different, incorrect results), and only for PCA
-#' (PCoA/NMDS axes have no loadings to rotate).
+#' (PCoA/NMDS axes have no loadings to rotate). Two conventions are
+#' offered:
+#'
+#' * `type = "rigid"` (default): the varimax criterion is applied to the
+#'   eigenvectors and the scores are rotated by the same orthogonal
+#'   matrix. The configuration of units is untouched -- all pairwise
+#'   distances are exactly preserved -- and the reported loadings are the
+#'   correlations between traits and the rotated scores. Note that
+#'   rigidly rotated components are in general no longer uncorrelated.
+#' * `type = "rescaled"`: the factor-analytic convention (as in
+#'   \pkg{psych}): varimax on the scaled loadings, with scores rescaled
+#'   so each rotated component's variance equals its sum of squared
+#'   loadings. Components remain closer to the factor-analysis reading,
+#'   but pairwise distances between units are not preserved.
 #'
 #' @param space A reduced PCA `fspace`.
 #' @param method Rotation method; only `"varimax"` in this version.
-#' @return The rotated `fspace`.
+#' @param type Rotation convention; see Description.
+#' @return The rotated `fspace` (fields `loadings`, `eig_rotated`,
+#'   `rotmat` and `rotation_type` describe the rotation).
 #' @examples
 #' data(gspff)
 #' sp2 <- fs_reduce(fs_space(gspff, method = "pca"), 2)
-#' spr <- fs_rotate(sp2)
-#' spr$loadings                # trait loadings on the rotated axes
+#'
+#' rig <- fs_rotate(sp2)                      # rigid (default)
+#' rig$loadings                               # trait-axis correlations
+#' # geometry untouched:
+#' all.equal(dist(rig$coords), dist(sp2$coords), check.attributes = FALSE)
+#'
+#' res <- fs_rotate(sp2, type = "rescaled")   # factor-analytic
+#' colSums(res$loadings^2)                    # variance per rotated axis
 #' @export
-fs_rotate <- function(space, method = "varimax") {
+fs_rotate <- function(space, method = "varimax",
+                      type = c("rigid", "rescaled")) {
   stopifnot(is_fspace(space))
   method <- match.arg(method)
+  type <- match.arg(type)
+  if (space$rotation != "none") {
+    stop("This space is already rotated; rebuild and reduce it to rotate ",
+         "with a different convention.", call. = FALSE)
+  }
   if (space$method != "pca") {
     stop("Rotation applies to PCA spaces only (", space$method,
          " axes have no trait loadings to rotate).", call. = FALSE)
@@ -99,13 +128,53 @@ fs_rotate <- function(space, method = "varimax") {
     space$tpds <- NULL
     space$bw <- NULL
   }
-  rot <- stats::varimax(space$loadings, normalize = TRUE)
-  space$loadings <- unclass(rot$loadings)
-  space$coords <- space$coords %*% rot$rotmat
-  colnames(space$coords) <- paste0("RC", seq_len(ncol(space$coords)))
-  colnames(space$loadings) <- colnames(space$coords)
-  # eigenvalues no longer apply axis-wise after rotation
-  space$eig_rotated <- colSums(space$loadings^2)
+  k <- ncol(space$coords)
+  if (type == "rigid") {
+    # varimax criterion on the eigenvectors; scores rotated by the same
+    # orthogonal matrix -> the configuration (all pairwise distances) is
+    # exactly preserved.
+    R <- stats::varimax(space$eigenvectors, normalize = TRUE)$rotmat
+    coords <- space$coords %*% R
+    colnames(coords) <- paste0("RC", seq_len(k))
+    ss <- apply(coords, 2L, function(z) mean((z - mean(z))^2))
+    Vr <- space$eigenvectors %*% R
+    colnames(Vr) <- colnames(coords)
+    # loadings = correlations between traits and the rotated scores
+    # (reduces to eigenvectors x sdev when R = identity)
+    L_rot <- (space$eigenvectors %*% diag(space$eig, k) %*% R) %*%
+      diag(1 / sqrt(ss), k)
+    colnames(L_rot) <- colnames(coords)
+    space$coords <- coords
+    space$eigenvectors <- Vr
+    space$loadings <- L_rot
+    if (!is.null(space$proj)) {
+      space$proj <- Vr
+    }
+  } else {
+    # factor-analytic convention: varimax on the SCALED loadings, scores
+    # rescaled so each rotated component's variance equals its sum of
+    # squared loadings. Distances between units are NOT preserved.
+    L <- space$loadings
+    rot <- stats::varimax(L, normalize = TRUE)
+    R <- rot$rotmat
+    L_rot <- unclass(rot$loadings)
+    ss <- colSums(L_rot^2)
+    sdev_ret <- sqrt(space$eig)
+    S_std <- sweep(space$coords, 2L, sdev_ret, "/")
+    coords <- S_std %*% R %*% diag(sqrt(ss), k)
+    colnames(coords) <- paste0("RC", seq_len(k))
+    colnames(L_rot) <- colnames(coords)
+    space$coords <- coords
+    space$loadings <- L_rot
+    if (!is.null(space$proj)) {
+      space$proj <- space$eigenvectors %*% diag(1 / sdev_ret, k) %*%
+        R %*% diag(sqrt(ss), k)
+      colnames(space$proj) <- colnames(coords)
+    }
+  }
+  space$eig_rotated <- ss
+  space$rotmat <- R
   space$rotation <- "varimax"
+  space$rotation_type <- type
   space
 }

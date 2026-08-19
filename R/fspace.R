@@ -1,16 +1,22 @@
 # fspace class: internal constructor, validator, and methods ------------------
 
 new_fspace <- function(coords, method, traits, units,
-                       loadings = NULL, eig = NULL, stress = NULL,
-                       dist = NULL, scale = NA, rotation = "none",
+                       loadings = NULL, eigenvectors = NULL, eig = NULL,
+                       stress = NULL, dist = NULL, scale = NA,
+                       center = NULL, scale_values = NULL, proj = NULL,
+                       rotation = "none",
                        reduced = FALSE, dims_full = ncol(coords),
                        tpds = NULL, bw = NULL, call = NULL) {
   stopifnot(is.matrix(coords))
   out <- list(
-    coords    = coords,
-    method    = method,
-    loadings  = loadings,
-    eig       = eig,
+    coords       = coords,
+    method       = method,
+    loadings     = loadings,
+    eigenvectors = eigenvectors,
+    eig          = eig,
+    center       = center,
+    scale_values = scale_values,
+    proj         = proj,
     stress    = stress,
     rotation  = rotation,
     reduced   = reduced,

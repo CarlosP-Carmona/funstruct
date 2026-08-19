@@ -157,9 +157,9 @@ test_that("fs_project projects only the imputed subset of fs_impute output", {
   # nothing imputed -> nothing to project
   attr(nd, "imputed")$imputed <- character(0)
   expect_error(fs_project(sp, nd), "nothing to project")
-  # subsetting drops the attribute, so everything projects again
-  nd2 <- nd[1:10, ]
-  co2 <- fs_project(sp, nd2)
+  # removing the attribute overrides the subsetting: everything projects
+  attr(nd, "imputed") <- NULL
+  co2 <- fs_project(sp, nd)
   expect_identical(nrow(co2), 10L)
 })
 

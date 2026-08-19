@@ -25,7 +25,8 @@
 #'   units with at least one imputed value are projected: the fully
 #'   empirical units are the material the space should be built from, not
 #'   projected into it (a message reports how many were skipped). To
-#'   override, subset the object first (subsetting drops the attribute).
+#'   override and project every row, remove the attribute first:
+#'   `attr(newdata, "imputed") <- NULL`.
 #' @param add Logical; if `TRUE`, return the `fspace` with the projected
 #'   units appended to its coordinates (flagged `projected` in the unit
 #'   metadata) instead of the bare coordinate matrix. Units whose names

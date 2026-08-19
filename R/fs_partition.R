@@ -138,8 +138,6 @@ print.fpartition <- function(x, ...) {
 
 #' @export
 plot.fpartition <- function(x, ...) {
-  op <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(op), add = TRUE)
   if (!is.null(x$profiles)) {
     pr <- x$profiles
     scales <- unique(pr$scale)

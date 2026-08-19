@@ -72,8 +72,6 @@ print.fs_dimensionality <- function(x, ...) {
 
 #' @export
 plot.fs_dimensionality <- function(x, ...) {
-  op <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(op), add = TRUE)
   cv <- x$curve
   ylab <- setdiff(colnames(cv), c("dims", "axis"))[1L]
   xcol <- intersect(c("dims", "axis"), colnames(cv))[1L]

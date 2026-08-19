@@ -20,3 +20,9 @@
   erroring; the space's own coordinates win.
 * The `imputed` attribute of `fs_impute()` renames its `units` element to
   `imputed`, matching the `complete` element.
+* Plot methods no longer save and restore `par()`: restoring it reset the
+  coordinate system, so `points()`/`text()` added after `plot()` landed in
+  the wrong place. All plots now stay open for annotation.
+* `plot.fspace()` gains `asp = 1` as default: both axes are in the same
+  units, so one unit measures the same length on x and y and distances in
+  the ordination read true. Override with `asp = NA` for free scaling.

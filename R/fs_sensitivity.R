@@ -95,8 +95,6 @@ print.fs_sensitivity <- function(x, ...) {
 
 #' @export
 plot.fs_sensitivity <- function(x, index = NULL, ...) {
-  op <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(op), add = TRUE)
   idx_cols <- setdiff(colnames(x$values), c("factor", "assemblage"))
   if (is.null(index)) index <- idx_cols[1L]
   index <- match.arg(index, idx_cols)

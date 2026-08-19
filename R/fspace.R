@@ -91,12 +91,10 @@ summary.fspace <- function(object, ...) {
 
 #' @export
 plot.fspace <- function(x, dims = c(1L, 2L), color_by = NULL,
-                        loadings = TRUE, cex = 0.8, ...) {
+                        loadings = TRUE, cex = 0.8, asp = 1, ...) {
   d <- ncol(x$coords)
   if (d < 2L) stop("Plotting requires at least two dimensions.", call. = FALSE)
   dims <- as.integer(dims[1:2])
-  op <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(op), add = TRUE)
 
   xy <- x$coords[, dims, drop = FALSE]
   col <- "grey30"
@@ -105,7 +103,12 @@ plot.fspace <- function(x, dims = c(1L, 2L), color_by = NULL,
     col <- grDevices::hcl.colors(nlevels(f), "Dark 3")[as.integer(f)]
   }
   lab <- .axis_labels(x, dims)
-  graphics::plot(xy, col = col, pch = 16, cex = cex,
+  # asp = 1 (default): one unit on the x axis has the same length as one
+  # unit on the y axis, so distances in the ordination read true.
+  # No par() is modified here, and nothing is restored on exit: the
+  # coordinate system stays open, so points()/text() can be added to the
+  # plot afterwards.
+  graphics::plot(xy, col = col, pch = 16, cex = cex, asp = asp,
                  xlab = lab[1L], ylab = lab[2L], las = 1, ...)
   graphics::abline(h = 0, v = 0, lty = 3, col = "grey70")
 

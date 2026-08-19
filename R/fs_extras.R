@@ -85,8 +85,6 @@ print.fs_redundancy <- function(x, ...) {
 
 #' @export
 plot.fs_redundancy <- function(x, ...) {
-  op <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(op), add = TRUE)
   v <- x$values
   assemblages <- unique(v$assemblage)
   cols <- grDevices::hcl.colors(max(2L, length(assemblages)), "Dark 3")

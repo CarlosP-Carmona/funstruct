@@ -13,6 +13,9 @@
 #' This supports the recommended imputation workflow: build the space
 #' from empirical measurements only, then project imputed species into it
 #' rather than letting imputed values shape the axes (see [fs_impute()]).
+#' The same logic handles unbalanced individual-level sampling: build the
+#' space on one mean per unit ([fs_means()]) so every unit weighs equally
+#' in the ordination, then project the individual observations into it.
 #'
 #' @param space A PCA `fspace` (from [fs_space()], possibly after
 #'   [fs_reduce()] / [fs_rotate()]).
@@ -20,11 +23,14 @@
 #'   trait columns as the space, and unique row names.
 #' @param add Logical; if `TRUE`, return the `fspace` with the projected
 #'   units appended to its coordinates (flagged `projected` in the unit
-#'   metadata) instead of the bare coordinate matrix.
+#'   metadata) instead of the bare coordinate matrix. Units whose names
+#'   are already present in the space are not appended: the coordinates
+#'   the space was built with take precedence (with a warning listing the
+#'   skipped units).
 #'
 #' @return A matrix of coordinates for the new units (default), or the
 #'   extended `fspace` when `add = TRUE`.
-#' @seealso [fs_impute()], [fs_space()]
+#' @seealso [fs_impute()], [fs_means()], [fs_space()]
 #' @examples
 #' data(gspff)
 #' sp <- fs_reduce(fs_space(gspff[1:500, ], method = "pca"), 2)
@@ -67,8 +73,14 @@ fs_project <- function(space, newdata, add = FALSE) {
 
   clash <- intersect(rownames(co), rownames(space$coords))
   if (length(clash)) {
-    stop("Unit name(s) already present in the space: ",
-         paste(utils::head(clash, 5L), collapse = ", "), call. = FALSE)
+    warning(length(clash), " unit(s) already present in the space were ",
+            "not appended (the coordinates the space was built with are ",
+            "kept): ", paste(utils::head(clash, 5L), collapse = ", "),
+            if (length(clash) > 5L) ", ...", call. = FALSE)
+    keep <- setdiff(rownames(co), clash)
+    if (!length(keep)) return(space)
+    co <- co[keep, , drop = FALSE]
+    O <- O[keep, , drop = FALSE]
   }
   if (!is.null(space$tpds)) {
     warning("Appending units invalidates previously estimated TPDs; ",
@@ -83,7 +95,7 @@ fs_project <- function(space, newdata, add = FALSE) {
                           projected = TRUE, stringsAsFactors = FALSE)
   imp <- attr(newdata, "imputed")
   if (!is.null(imp)) {
-    new_units$imputed_traits <- new_units$id %in% imp$units
+    new_units$imputed_traits <- new_units$id %in% imp$imputed
   }
   space$units <- rbind(space$units, new_units)
   if (!is.null(space$traits)) {

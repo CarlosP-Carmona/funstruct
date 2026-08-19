@@ -27,7 +27,7 @@
 #'
 #' @return The completed trait data.frame, with attribute `imputed`: a
 #'   list with `cells` (a units x traits logical matrix marking imputed
-#'   values), `units` (row names with at least one imputed value),
+#'   values), `imputed` (row names with at least one imputed value),
 #'   `complete` (row names that were fully empirical, useful to build a
 #'   space from empirical data only and project the rest with
 #'   [fs_project()]) and `oob` (missForest out-of-bag error estimate).
@@ -47,7 +47,7 @@
 #'
 #' # informed by the phylogeny:
 #' outp <- fs_impute(sub, phylo = gspff_phylo, n_eigen = 5, seed = 1)
-#' head(attr(outp, "imputed")$units)
+#' head(attr(outp, "imputed")$imputed)
 #'
 #' # recommended workflow: build the space from EMPIRICAL data only and
 #' # project the imputed species into it (same centring and scaling):
@@ -74,7 +74,7 @@ fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
   if (!any(na_mask)) {
     message("No missing values found; returning `traits` unchanged.")
     attr(traits, "imputed") <- list(cells = na_mask,
-                                    units = character(0),
+                                    imputed = character(0),
                                     complete = rownames(traits),
                                     oob = NULL)
     return(traits)
@@ -112,7 +112,7 @@ fs_impute <- function(traits, phylo = NULL, n_eigen = 10L, seed = NULL,
   rownames(out) <- rownames(traits)
   attr(out, "imputed") <- list(
     cells = na_mask,
-    units = rownames(traits)[rowSums(na_mask) > 0L],
+    imputed = rownames(traits)[rowSums(na_mask) > 0L],
     complete = rownames(traits)[rowSums(na_mask) == 0L],
     oob = fit$OOBerror
   )

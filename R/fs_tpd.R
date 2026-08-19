@@ -75,8 +75,10 @@ fs_grid <- function(space, res = NULL, padding = 0.05) {
 #' individuals to species). Each unit's TPD is a multivariate kernel
 #' density estimate of its own observations, with the bandwidth selected
 #' per unit from its full data (plug-in by default) and never re-selected
-#' on subsets. Alternatively, `obs` can supply new individual-level trait
-#' values to be projected into a PCA space built on other units.
+#' on subsets. Alternatively, `obs` can supply individual-level trait
+#' values to be projected into a PCA space built on other rows --
+#' typically a space built on one mean per unit (see [fs_means()]), so
+#' that unequal replication among units does not shape the axes.
 #'
 #' **Means with imposed spread** (`sds` supplied, no `ids`): the rows of
 #' the space are unit means (e.g. species mean traits) and `sds` gives the
@@ -127,7 +129,7 @@ fs_grid <- function(space, res = NULL, padding = 0.05) {
 #'   Carmona, C.P., de Bello, F., Mason, N.W.H. & Leps, J. (2019) Trait
 #'   probability density (TPD): measuring functional diversity across
 #'   scales based on TPD with R. *Ecology*, 100, e02876.
-#' @seealso [fs_grid()], [fs_adequacy()]
+#' @seealso [fs_grid()], [fs_adequacy()], [fs_means()]
 #' @examples
 #' ## Observations route: individuals grouped into species
 #' data(grassland)

@@ -8,18 +8,18 @@ fs_space(
   traits,
   method = c("pca", "pcoa", "nmds", "raw"),
   scale = TRUE,
-  dist = NULL,
   correction = c("cailliez", "lingoes", "none"),
   k = NULL,
   seed = NULL
 )
 }
 \arguments{
-\item{traits}{A matrix or data.frame (units x traits) with unique row
-names identifying the units (species, populations, individuals). All
-columns must be numeric for \code{method = "pca"}, \code{"nmds"} and \code{"raw"};
-mixed types are allowed for \code{method = "pcoa"} (Gower dissimilarity is
-used internally via \code{\link[cluster:daisy]{cluster::daisy()}}).}
+\item{traits}{For \code{method = "pca"} and \code{"raw"}: a matrix or data.frame
+(units x traits) with unique row names and all-numeric columns
+(impute missing values first, see \code{\link[=fs_impute]{fs_impute()}}). For
+\code{method = "pcoa"} and \code{"nmds"}: a \link[stats:dist]{stats::dist} object, typically
+from \code{\link[=fs_dist]{fs_dist()}}. Passing a trait table for \code{"pcoa"}/\code{"nmds"} is an
+error -- compute the dissimilarities first with \code{\link[=fs_dist]{fs_dist()}}.}
 
 \item{method}{Ordination method: \code{"pca"} (default; via
 \code{\link[stats:princomp]{stats::princomp()}}, which requires more units than traits),
@@ -31,17 +31,18 @@ factor-analytic sense) and \verb{$eigenvectors} (the unit-norm
 eigenvectors used internally for projection).}
 
 \item{scale}{Logical; scale traits to unit variance (default \code{TRUE}).
-Ignored for \code{method = "pcoa"} with mixed data (Gower scales internally).}
-
-\item{dist}{Optional distance object (\code{dist}, e.g. from \code{\link[stats:dist]{stats::dist()}} or
-gawdis) used for \code{"pcoa"}/\code{"nmds"}; overrides internal computation.}
+Used by \code{"pca"} (correlation vs covariance matrix) and \code{"raw"} only.
+With \code{scale = FALSE} the PCA is computed on the covariance matrix,
+so traits with larger variances dominate the leading axes; a warning
+is issued when the trait variances differ noticeably.}
 
 \item{correction}{Correction for negative eigenvalues in PCoA:
-\code{"cailliez"} (default), \code{"lingoes"}, or \code{"none"}.}
+\code{"cailliez"} (default), \code{"lingoes"}, or \code{"none"}. See the section
+below.}
 
-\item{k}{Number of dimensions for NMDS only (NMDS has no full space; it is
-fitted at a chosen dimensionality). Default \code{min(4, ncol(traits) - 1)}.
-\code{\link[=fs_reduce]{fs_reduce()}} refits NMDS at the requested dimensionality.}
+\item{k}{Number of dimensions for NMDS only (NMDS has no full space; it
+is fitted at a chosen dimensionality). Default \code{2}, the usual NMDS
+convention; \code{\link[=fs_reduce]{fs_reduce()}} refits NMDS at any other dimensionality.}
 
 \item{seed}{Random seed used for methods with a stochastic component.}
 }
@@ -49,22 +50,76 @@ fitted at a chosen dimensionality). Default \code{min(4, ncol(traits) - 1)}.
 An object of class \code{fspace}.
 }
 \description{
-Builds the full trait space from a units-by-traits table. Dimensionality
-is deliberately not chosen here: evaluate the space first (see
-\code{\link[=fs_dimensionality]{fs_dimensionality()}} and \code{\link[=fs_quality]{fs_quality()}}) and then trim it with
-\code{\link[=fs_reduce]{fs_reduce()}} and, for PCA spaces, optionally rotate it with
-\code{\link[=fs_rotate]{fs_rotate()}}.
+Builds the full trait space, either from a units-by-traits table
+(\code{method = "pca"} or \code{"raw"}) or from a precomputed dissimilarity
+matrix (\code{method = "pcoa"} or \code{"nmds"}). Dimensionality is deliberately
+not chosen here: evaluate the space first (see \code{\link[=fs_dimensionality]{fs_dimensionality()}}
+and \code{\link[=fs_quality]{fs_quality()}}) and then trim it with \code{\link[=fs_reduce]{fs_reduce()}} and, for PCA
+spaces, optionally rotate it with \code{\link[=fs_rotate]{fs_rotate()}}.
 }
+\details{
+\code{fs_space()} never computes dissimilarities itself. For \code{"pcoa"} and
+\code{"nmds"}, pass a \link[stats:dist]{stats::dist} object as \code{traits} -- typically the
+output of \code{\link[=fs_dist]{fs_dist()}}, which combines multiple trait types into a
+Gower-style dissimilarity bounded between 0 and 1 (any \code{dist} object,
+e.g. from \code{\link[stats:dist]{stats::dist()}} or the gawdis package, is accepted).
+Keeping the dissimilarity step explicit makes the choice of
+coefficient a visible part of the analysis instead of a hidden
+default.
+}
+\section{Negative eigenvalues and their corrections (PCoA)}{
+
+
+Metric scaling of a non-Euclidean dissimilarity matrix (Gower
+dissimilarities usually are non-Euclidean, especially with categorical
+traits or missing values) produces negative eigenvalues: the units
+cannot be embedded exactly in any Euclidean space, and the axes
+associated with negative eigenvalues represent "imaginary" variation.
+Left uncorrected (\code{correction = "none"}), distances in the resulting
+space underestimate the original dissimilarities, and quantities
+computed from the axes (functional richness, dispersion) absorb the
+distortion. Two classical fixes are offered:
+\itemize{
+\item \code{"cailliez"} (default): adds the smallest constant to all
+off-diagonal \emph{dissimilarities} that makes the matrix Euclidean
+(Cailliez 1983). This is the correction used by
+\code{ape::pcoa(..., correction = "cailliez")} and is a common default in
+trait-based work.
+\item \code{"lingoes"}: adds the smallest constant to all off-diagonal
+\emph{squared} dissimilarities that makes the matrix Euclidean (Lingoes
+1971). It distorts large dissimilarities relatively less than
+Cailliez; the two usually give very similar spaces.
+}
+
+Either correction alters all dissimilarities slightly, so the
+corrected space no longer reproduces the input distances exactly;
+\code{\link[=fs_quality]{fs_quality()}} measures how much is lost. If the input is already
+Euclidean (e.g. \code{stats::dist()} on scaled numeric traits), no
+correction is applied in practice because the added constant is zero
+(Cailliez) or the eigenvalues are already non-negative (Lingoes).
+Axes with eigenvalues that remain non-positive after correction are
+dropped.
+}
+
 \examples{
 data(gspff)
 sp <- fs_space(gspff, method = "pca")
 sp
 plot(sp)
 
-# PCoA from Gower dissimilarities (mixed trait types allowed)
-sp2 <- fs_space(gspff[1:150, ], method = "pcoa")
+# PCoA: compute the dissimilarities explicitly, then ordinate
+d <- fs_dist(gspff[1:150, ])
+sp2 <- fs_space(d, method = "pcoa")
+}
+\references{
+Cailliez, F. (1983) The analytical solution of the
+additive constant problem. \emph{Psychometrika}, 48, 305-308.
+
+Lingoes, J.C. (1971) Some boundary conditions for a monotone
+analysis of symmetric matrices. \emph{Psychometrika}, 36, 195-203.
 }
 \seealso{
+\code{\link[=fs_dist]{fs_dist()}} to compute bounded dissimilarities,
 \code{\link[=as_fspace]{as_fspace()}} to import existing ordinations, \code{\link[=fs_reduce]{fs_reduce()}},
 \code{\link[=fs_rotate]{fs_rotate()}}.
 }

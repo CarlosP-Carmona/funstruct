@@ -120,6 +120,62 @@ test_that("input validation catches bad inputs", {
   expect_error(fs_space(xna, method = "pca"), "Missing")
 })
 
+test_that("fs_project add = TRUE skips units already in the space", {
+  x <- toy_traits()
+  sp <- fs_reduce(fs_space(x, method = "pca"), 2L)
+  new <- toy_traits(n = 5L, seed = 99L)
+  rownames(new) <- c("sp1", "sp2", "newA", "newB", "newC")  # 2 clashes
+  expect_warning(sp2 <- fs_project(sp, new, add = TRUE),
+                 "already present")
+  expect_identical(nrow(sp2$coords), 33L)          # only the 3 new ones
+  expect_setequal(sp2$units$id[sp2$units$projected],
+                  c("newA", "newB", "newC"))
+  # the clashing units keep the coordinates the space was built with
+  expect_equal(sp2$coords["sp1", ], sp$coords["sp1", ])
+  # all duplicates -> space returned unchanged (plus the warning)
+  expect_warning(sp3 <- fs_project(sp, x[1:3, ], add = TRUE),
+                 "already present")
+  expect_identical(nrow(sp3$coords), nrow(sp$coords))
+})
+
+test_that("fs_means aggregates observations into unit means", {
+  set.seed(5)
+  ids <- rep(c("spA", "spB", "spC"), times = c(4L, 3L, 1L))
+  obs <- data.frame(t1 = rnorm(8), t2 = rnorm(8))
+  m <- fs_means(obs, ids)
+  expect_identical(rownames(m), c("spA", "spB", "spC"))
+  expect_equal(m["spA", "t1"], mean(obs$t1[1:4]), tolerance = 1e-12)
+  expect_identical(attr(m, "n"),
+                   c(spA = 4L, spB = 3L, spC = 1L))
+  sds <- attr(m, "sds")
+  expect_equal(sds["spB", "t2"], sd(obs$t2[5:7]), tolerance = 1e-12)
+  expect_true(is.na(sds["spC", "t1"]))     # single observation
+  # NAs are ignored within units
+  obs$t1[1L] <- NA
+  m2 <- fs_means(obs, ids)
+  expect_equal(m2["spA", "t1"], mean(obs$t1[2:4]), tolerance = 1e-12)
+  # validation
+  expect_error(fs_means(obs, ids[-1L]), "one entry per row")
+  expect_error(fs_means(data.frame(a = letters[1:3]), c("u", "u", "v")),
+               "numeric")
+})
+
+test_that("mean-based space + projected observations round-trips", {
+  set.seed(6)
+  ids <- rep(paste0("sp", 1:6), each = 10L)
+  obs <- data.frame(t1 = rnorm(60) + rep(1:6, each = 10L),
+                    t2 = rnorm(60),
+                    row.names = paste0("i", 1:60))
+  trM <- fs_means(obs, ids)
+  sp <- fs_space(trM, method = "pca")
+  co <- fs_project(sp, obs)
+  expect_identical(dim(co), c(60L, 2L))
+  # each species' projected individuals average to its mean's position
+  agg <- rowsum(co, ids) / 10
+  expect_equal(agg[rownames(sp$coords), ], sp$coords, tolerance = 1e-10,
+               ignore_attr = TRUE)
+})
+
 test_that("print and summary run silently and return invisibly", {
   sp <- fs_space(toy_traits())
   expect_output(print(sp), "fspace")

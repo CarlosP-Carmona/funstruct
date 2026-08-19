@@ -21,7 +21,8 @@ test_that("fs_impute completes traits and records what was imputed", {
   imp <- attr(out, "imputed")
   expect_identical(dim(imp$cells), dim(as.matrix(x)))
   expect_identical(sum(imp$cells), sum(is.na(x)))
-  expect_setequal(imp$units, rownames(x)[rowSums(is.na(x)) > 0L])
+  expect_setequal(imp$imputed, rownames(x)[rowSums(is.na(x)) > 0L])
+  expect_setequal(imp$complete, rownames(x)[rowSums(is.na(x)) == 0L])
   # non-missing values are untouched
   keep <- !is.na(x)
   expect_equal(as.matrix(out)[keep], as.matrix(x)[keep])
@@ -33,7 +34,7 @@ test_that("imputation flags propagate into fs_space unit metadata", {
   out <- fs_impute(x, seed = 1L)
   sp <- fs_space(out, method = "pca")
   flagged <- sp$units$id[sp$units$imputed_traits]
-  expect_setequal(flagged, attr(out, "imputed")$units)
+  expect_setequal(flagged, attr(out, "imputed")$imputed)
 })
 
 test_that("fs_impute handles the no-NA case and validates inputs", {
@@ -41,7 +42,7 @@ test_that("fs_impute handles the no-NA case and validates inputs", {
   x <- toy_gappy()
   x[is.na(x)] <- 0
   expect_message(out <- fs_impute(x), "No missing values")
-  expect_identical(attr(out, "imputed")$units, character(0))
+  expect_identical(attr(out, "imputed")$imputed, character(0))
   bad <- x
   rownames(bad) <- NULL
   expect_error(fs_impute(bad), "row names")

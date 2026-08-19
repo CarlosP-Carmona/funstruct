@@ -278,5 +278,5 @@ fs_space <- function(traits,
 .imputed_flags <- function(traits) {
   imp <- attr(traits, "imputed")
   if (is.null(imp)) return(rep(FALSE, nrow(traits)))
-  rownames(traits) %in% imp$units
+  rownames(traits) %in% imp$imputed
 }

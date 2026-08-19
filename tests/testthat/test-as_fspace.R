@@ -27,7 +27,7 @@ test_that("as_fspace.dist performs PCoA", {
   x <- toy_traits()
   d <- dist(scale(as.matrix(x)))
   imp <- as_fspace(d, correction = "cailliez")
-  ref <- fs_space(x, method = "pcoa", correction = "cailliez")
+  ref <- fs_space(d, method = "pcoa", correction = "cailliez")
   expect_equal(imp$coords, ref$coords)
 })
 

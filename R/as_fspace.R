@@ -71,7 +71,7 @@ as_fspace.princomp <- function(x, traits = NULL, ...) {
 as_fspace.dist <- function(x, correction = c("cailliez", "lingoes", "none"),
                            traits = NULL, ...) {
   correction <- match.arg(correction)
-  out <- .space_pcoa(NULL, x, correction)
+  out <- .space_pcoa(x, correction)
   new_fspace(coords = out$coords, method = "pcoa",
              traits = traits, units = .units_from(out$coords),
              eig = out$eig, dist = x, call = match.call())

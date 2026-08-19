@@ -21,7 +21,7 @@ test_that("fs_reduce truncates PCA/PCoA spaces", {
 })
 
 test_that("fs_reduce refits NMDS at the requested k", {
-  sp <- fs_space(toy_traits(), method = "nmds", seed = 1L)
+  sp <- fs_space(fs_dist(toy_traits()), method = "nmds", k = 3L, seed = 1L)
   r <- fs_reduce(sp, 2L)
   expect_identical(ncol(r$coords), 2L)
   expect_true(is.numeric(r$stress))
@@ -37,7 +37,7 @@ test_that("fs_reduce validates dims", {
 test_that("fs_rotate requires a reduced PCA space", {
   sp <- fs_space(toy_traits(), method = "pca")
   expect_error(fs_rotate(sp), "fs_reduce")
-  pco <- fs_space(toy_traits(), method = "pcoa")
+  pco <- fs_space(fs_dist(toy_traits()), method = "pcoa")
   expect_error(fs_rotate(fs_reduce(pco, 3L)), "PCA")
 })
 

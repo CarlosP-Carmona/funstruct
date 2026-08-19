@@ -2,17 +2,59 @@
 
 #' Build a trait space
 #'
-#' Builds the full trait space from a units-by-traits table. Dimensionality
-#' is deliberately not chosen here: evaluate the space first (see
-#' [fs_dimensionality()] and [fs_quality()]) and then trim it with
-#' [fs_reduce()] and, for PCA spaces, optionally rotate it with
-#' [fs_rotate()].
+#' Builds the full trait space, either from a units-by-traits table
+#' (`method = "pca"` or `"raw"`) or from a precomputed dissimilarity
+#' matrix (`method = "pcoa"` or `"nmds"`). Dimensionality is deliberately
+#' not chosen here: evaluate the space first (see [fs_dimensionality()]
+#' and [fs_quality()]) and then trim it with [fs_reduce()] and, for PCA
+#' spaces, optionally rotate it with [fs_rotate()].
 #'
-#' @param traits A matrix or data.frame (units x traits) with unique row
-#'   names identifying the units (species, populations, individuals). All
-#'   columns must be numeric for `method = "pca"`, `"nmds"` and `"raw"`;
-#'   mixed types are allowed for `method = "pcoa"` (Gower dissimilarity is
-#'   used internally via [cluster::daisy()]).
+#' `fs_space()` never computes dissimilarities itself. For `"pcoa"` and
+#' `"nmds"`, pass a [stats::dist] object as `traits` -- typically the
+#' output of [fs_dist()], which combines multiple trait types into a
+#' Gower-style dissimilarity bounded between 0 and 1 (any `dist` object,
+#' e.g. from [stats::dist()] or the gawdis package, is accepted).
+#' Keeping the dissimilarity step explicit makes the choice of
+#' coefficient a visible part of the analysis instead of a hidden
+#' default.
+#'
+#' @section Negative eigenvalues and their corrections (PCoA):
+#'
+#' Metric scaling of a non-Euclidean dissimilarity matrix (Gower
+#' dissimilarities usually are non-Euclidean, especially with categorical
+#' traits or missing values) produces negative eigenvalues: the units
+#' cannot be embedded exactly in any Euclidean space, and the axes
+#' associated with negative eigenvalues represent "imaginary" variation.
+#' Left uncorrected (`correction = "none"`), distances in the resulting
+#' space underestimate the original dissimilarities, and quantities
+#' computed from the axes (functional richness, dispersion) absorb the
+#' distortion. Two classical fixes are offered:
+#'
+#' * `"cailliez"` (default): adds the smallest constant to all
+#'   off-diagonal *dissimilarities* that makes the matrix Euclidean
+#'   (Cailliez 1983). This is the correction used by
+#'   `ape::pcoa(..., correction = "cailliez")` and is a common default in
+#'   trait-based work.
+#' * `"lingoes"`: adds the smallest constant to all off-diagonal
+#'   *squared* dissimilarities that makes the matrix Euclidean (Lingoes
+#'   1971). It distorts large dissimilarities relatively less than
+#'   Cailliez; the two usually give very similar spaces.
+#'
+#' Either correction alters all dissimilarities slightly, so the
+#' corrected space no longer reproduces the input distances exactly;
+#' [fs_quality()] measures how much is lost. If the input is already
+#' Euclidean (e.g. `stats::dist()` on scaled numeric traits), no
+#' correction is applied in practice because the added constant is zero
+#' (Cailliez) or the eigenvalues are already non-negative (Lingoes).
+#' Axes with eigenvalues that remain non-positive after correction are
+#' dropped.
+#'
+#' @param traits For `method = "pca"` and `"raw"`: a matrix or data.frame
+#'   (units x traits) with unique row names and all-numeric columns
+#'   (impute missing values first, see [fs_impute()]). For
+#'   `method = "pcoa"` and `"nmds"`: a [stats::dist] object, typically
+#'   from [fs_dist()]. Passing a trait table for `"pcoa"`/`"nmds"` is an
+#'   error -- compute the dissimilarities first with [fs_dist()].
 #' @param method Ordination method: `"pca"` (default; via
 #'   [stats::princomp()], which requires more units than traits),
 #'   `"pcoa"`, `"nmds"`, or `"raw"` (scaled trait axes used directly).
@@ -22,18 +64,26 @@
 #'   factor-analytic sense) and `$eigenvectors` (the unit-norm
 #'   eigenvectors used internally for projection).
 #' @param scale Logical; scale traits to unit variance (default `TRUE`).
-#'   Ignored for `method = "pcoa"` with mixed data (Gower scales internally).
-#' @param dist Optional distance object (`dist`, e.g. from [stats::dist()] or
-#'   gawdis) used for `"pcoa"`/`"nmds"`; overrides internal computation.
+#'   Used by `"pca"` (correlation vs covariance matrix) and `"raw"` only.
+#'   With `scale = FALSE` the PCA is computed on the covariance matrix,
+#'   so traits with larger variances dominate the leading axes; a warning
+#'   is issued when the trait variances differ noticeably.
 #' @param correction Correction for negative eigenvalues in PCoA:
-#'   `"cailliez"` (default), `"lingoes"`, or `"none"`.
-#' @param k Number of dimensions for NMDS only (NMDS has no full space; it is
-#'   fitted at a chosen dimensionality). Default `min(4, ncol(traits) - 1)`.
-#'   [fs_reduce()] refits NMDS at the requested dimensionality.
+#'   `"cailliez"` (default), `"lingoes"`, or `"none"`. See the section
+#'   below.
+#' @param k Number of dimensions for NMDS only (NMDS has no full space; it
+#'   is fitted at a chosen dimensionality). Default `2`, the usual NMDS
+#'   convention; [fs_reduce()] refits NMDS at any other dimensionality.
 #' @param seed Random seed used for methods with a stochastic component.
 #'
 #' @return An object of class `fspace`.
-#' @seealso [as_fspace()] to import existing ordinations, [fs_reduce()],
+#' @references Cailliez, F. (1983) The analytical solution of the
+#'   additive constant problem. *Psychometrika*, 48, 305-308.
+#'
+#'   Lingoes, J.C. (1971) Some boundary conditions for a monotone
+#'   analysis of symmetric matrices. *Psychometrika*, 36, 195-203.
+#' @seealso [fs_dist()] to compute bounded dissimilarities,
+#'   [as_fspace()] to import existing ordinations, [fs_reduce()],
 #'   [fs_rotate()].
 #' @examples
 #' data(gspff)
@@ -41,33 +91,58 @@
 #' sp
 #' plot(sp)
 #'
-#' # PCoA from Gower dissimilarities (mixed trait types allowed)
-#' sp2 <- fs_space(gspff[1:150, ], method = "pcoa")
+#' # PCoA: compute the dissimilarities explicitly, then ordinate
+#' d <- fs_dist(gspff[1:150, ])
+#' sp2 <- fs_space(d, method = "pcoa")
 #' @export
 fs_space <- function(traits,
                      method = c("pca", "pcoa", "nmds", "raw"),
                      scale = TRUE,
-                     dist = NULL,
                      correction = c("cailliez", "lingoes", "none"),
                      k = NULL,
                      seed = NULL) {
   method <- match.arg(method)
   correction <- match.arg(correction)
-  traits <- .check_traits(traits, method)
+  is_dist <- inherits(traits, "dist")
+
+  if (method %in% c("pcoa", "nmds")) {
+    if (!is_dist) {
+      stop("`", method, "` requires a precomputed dissimilarity matrix ",
+           "(a `dist` object) as the `traits` input. fs_space() does not ",
+           "compute dissimilarities; use fs_dist() first.", call. = FALSE)
+    }
+    d <- traits
+    if (is.null(labels(d))) {
+      stop("The `dist` object must carry unit labels ",
+           "(see ?dist, argument `Labels`).", call. = FALSE)
+    }
+    if (anyNA(d)) {
+      stop("The dissimilarity matrix contains NAs.", call. = FALSE)
+    }
+    traits <- NULL
+  } else {
+    if (is_dist) {
+      stop("A `dist` object can only be used with method = \"pcoa\" or ",
+           "\"nmds\"; `", method, "` needs the trait values themselves.",
+           call. = FALSE)
+    }
+    traits <- .check_traits(traits)
+  }
   if (!is.null(seed)) set.seed(seed)
 
+  unit_ids <- if (is.null(traits)) labels(d) else rownames(traits)
   units <- data.frame(
-    id = rownames(traits),
+    id = unit_ids,
     n_obs = 1L,
     has_own_obs = FALSE,
-    imputed_traits = .imputed_flags(traits),
+    imputed_traits = if (is.null(traits)) FALSE else .imputed_flags(traits),
     stringsAsFactors = FALSE
   )
 
   out <- switch(method,
     pca  = .space_pca(traits, scale),
-    pcoa = .space_pcoa(traits, dist, correction),
-    nmds = .space_nmds(traits, dist, k),
+    pcoa = .space_pcoa(d, correction),
+    nmds = .space_nmds(d, k),
     raw  = .space_raw(traits, scale)
   )
 
@@ -89,6 +164,17 @@ fs_space <- function(traits,
     stop("PCA (princomp) requires more units than traits (got ",
          nrow(m), " units x ", ncol(m), " traits).", call. = FALSE)
   }
+  if (!scale) {
+    v <- apply(m, 2L, stats::var)
+    if (max(v) / min(v) > 1.5) {
+      warning("PCA on the covariance matrix (scale = FALSE) with unequal ",
+              "trait variances: axes will be dominated by the ",
+              "high-variance traits (variances range from ",
+              signif(min(v), 3), " to ", signif(max(v), 3),
+              "). Use scale = TRUE unless the traits share a scale ",
+              "deliberately.", call. = FALSE)
+    }
+  }
   p <- stats::princomp(m, cor = scale)
   V <- unclass(p$loadings)          # unit eigenvectors
   coords <- p$scores
@@ -104,8 +190,7 @@ fs_space <- function(traits,
        scale_values = p$scale, proj = V, stress = NULL, dist = NULL)
 }
 
-.space_pcoa <- function(x, d, correction) {
-  if (is.null(d)) d <- .default_dist(x)
+.space_pcoa <- function(d, correction) {
   n <- attr(d, "Size")
   k <- n - 1L
   # cmdscale warns when k exceeds the positive-eigenvalue rank; we handle
@@ -124,9 +209,8 @@ fs_space <- function(traits,
        stress = NULL, dist = d)
 }
 
-.space_nmds <- function(x, d, k) {
-  if (is.null(d)) d <- .default_dist(x)
-  if (is.null(k)) k <- max(1L, min(4L, ncol(x) - 1L))
+.space_nmds <- function(d, k) {
+  if (is.null(k)) k <- 2L
   fit <- MASS::isoMDS(d, k = k, trace = FALSE)
   coords <- fit$points
   colnames(coords) <- paste0("NMDS", seq_len(ncol(coords)))
@@ -146,7 +230,7 @@ fs_space <- function(traits,
 
 # helpers ---------------------------------------------------------------------
 
-.check_traits <- function(traits, method) {
+.check_traits <- function(traits) {
   if (is.null(dim(traits))) {
     stop("`traits` must be a matrix or data.frame (units x traits).",
          call. = FALSE)
@@ -162,27 +246,18 @@ fs_space <- function(traits,
     stop("At least two traits are required to build a space.", call. = FALSE)
   }
   numeric_ok <- vapply(traits, is.numeric, logical(1L))
-  if (method != "pcoa" && !all(numeric_ok)) {
+  if (!all(numeric_ok)) {
     stop("Non-numeric traits found: ",
          paste(names(traits)[!numeric_ok], collapse = ", "),
-         ". Use method = \"pcoa\" (Gower) for mixed trait types.",
-         call. = FALSE)
+         ". For mixed trait types, compute Gower dissimilarities with ",
+         "fs_dist() and use method = \"pcoa\".", call. = FALSE)
   }
-  if (method != "pcoa" && anyNA(traits)) {
-    stop("Missing trait values found. Impute first (see fs_impute()) or ",
-         "use method = \"pcoa\", which tolerates missing values via Gower.",
-         call. = FALSE)
+  if (anyNA(traits)) {
+    stop("Missing trait values found. Impute first (see fs_impute()), or ",
+         "compute dissimilarities with fs_dist() (which tolerates missing ",
+         "values) and use method = \"pcoa\".", call. = FALSE)
   }
   traits
-}
-
-.default_dist <- function(x) {
-  numeric_ok <- vapply(as.data.frame(x), is.numeric, logical(1L))
-  if (all(numeric_ok) && !anyNA(x)) {
-    stats::dist(base::scale(as.matrix(x)))
-  } else {
-    cluster::daisy(as.data.frame(x), metric = "gower")
-  }
 }
 
 .lingoes <- function(d) {

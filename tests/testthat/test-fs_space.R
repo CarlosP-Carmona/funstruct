@@ -53,32 +53,49 @@ test_that("fs_project reproduces the space's own coordinates", {
 test_that("PCoA reproduces cmdscale with Cailliez correction", {
   x <- toy_traits()
   d <- dist(scale(as.matrix(x)))
-  sp <- fs_space(x, method = "pcoa", correction = "cailliez")
+  sp <- fs_space(d, method = "pcoa", correction = "cailliez")
   ref <- cmdscale(d, k = nrow(x) - 1L, eig = TRUE, add = TRUE)
   keep <- which(ref$eig > sqrt(.Machine$double.eps))
   keep <- keep[keep <= ncol(ref$points)]
   expect_equal(unname(sp$coords), unname(ref$points[, keep, drop = FALSE]))
   expect_true(all(sp$eig > 0))
+  expect_identical(rownames(sp$coords), rownames(x))
 })
 
-test_that("PCoA accepts a user-supplied dist and mixed traits use Gower", {
+test_that("pcoa/nmds require a dist and pca/raw refuse one", {
   x <- toy_traits()
-  d <- dist(as.matrix(x))
-  sp <- fs_space(x, method = "pcoa", dist = d, correction = "none")
-  expect_s3_class(sp, "fspace")
+  expect_error(fs_space(x, method = "pcoa"), "fs_dist")
+  expect_error(fs_space(x, method = "nmds"), "fs_dist")
+  d <- dist(scale(as.matrix(x)))
+  expect_error(fs_space(d, method = "pca"), "pcoa")
+  expect_error(fs_space(d, method = "raw"), "pcoa")
+  # the intended workflow, including mixed trait types via fs_dist
   xm <- x
   xm$cat <- factor(rep(letters[1:3], length.out = nrow(x)))
-  sp2 <- fs_space(xm, method = "pcoa")
+  sp2 <- fs_space(fs_dist(xm), method = "pcoa")
   expect_s3_class(sp2, "fspace")
   expect_identical(rownames(sp2$coords), rownames(xm))
 })
 
-test_that("NMDS fits at default k and stores stress and dist", {
+test_that("NMDS fits at default k = 2 and stores stress and dist", {
   x <- toy_traits()
-  sp <- fs_space(x, method = "nmds", seed = 42L)
-  expect_identical(ncol(sp$coords), 4L)
+  d <- fs_dist(x)
+  sp <- fs_space(d, method = "nmds", seed = 42L)
+  expect_identical(ncol(sp$coords), 2L)
   expect_true(is.numeric(sp$stress) && sp$stress >= 0)
   expect_s3_class(sp$dist, "dist")
+  sp3 <- fs_space(d, method = "nmds", k = 3L, seed = 42L)
+  expect_identical(ncol(sp3$coords), 3L)
+})
+
+test_that("covariance PCA warns when trait variances differ", {
+  x <- toy_traits()
+  x$tr1 <- x$tr1 * 10          # inflate one variance
+  expect_warning(fs_space(x, method = "pca", scale = FALSE),
+                 "covariance")
+  # equal variances: no warning
+  xs <- as.data.frame(scale(as.matrix(toy_traits())))
+  expect_silent(fs_space(xs, method = "pca", scale = FALSE))
 })
 
 test_that("raw method returns scaled traits", {

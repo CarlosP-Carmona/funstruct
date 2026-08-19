@@ -24,7 +24,7 @@
 #' @examples
 #' data(gspff)
 #' s1 <- fs_space(gspff[1:200, ], method = "pca")
-#' s2 <- fs_space(gspff[1:200, ], method = "pcoa")
+#' s2 <- fs_space(fs_dist(gspff[1:200, ]), method = "pcoa")
 #' fs_compare(s1, s2)
 #' fs_compare(s1, s2, method = "correlation")
 #' @export

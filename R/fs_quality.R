@@ -71,7 +71,10 @@ print.fs_quality <- function(x, ...) {
   }
   numeric_ok <- vapply(as.data.frame(space$traits), is.numeric, logical(1L))
   if (!all(numeric_ok) || anyNA(space$traits)) {
-    return(cluster::daisy(as.data.frame(space$traits), metric = "gower"))
+    stop("The stored traits are mixed-type or contain NAs, so no default ",
+         "initial dissimilarity is defined. Build the space from a ",
+         "fs_dist() dissimilarity matrix (method = \"pcoa\"/\"nmds\") so ",
+         "it is stored in the space.", call. = FALSE)
   }
   scl <- !identical(space$scale, FALSE)
   stats::dist(base::scale(as.matrix(space$traits), center = TRUE,

@@ -23,7 +23,6 @@ LazyData: true
 Depends: R (>= 4.1)
 Imports:
     MASS,
-    cluster,
     geometry,
     ks,
     parallel,
@@ -36,7 +35,8 @@ Suggests:
     vegan,
     ade4,
     missForest,
-    ape
+    ape,
+    cluster
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2

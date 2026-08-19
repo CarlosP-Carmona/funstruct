@@ -19,6 +19,8 @@ funstruct supersedes and extends the
 library(funstruct)
 
 space <- fs_space(traits, method = "pca")   # 1. build the FULL space
+# (or: fs_space(fs_dist(traits), "pcoa")    #    dissimilarities are always
+#  -- fs_dist gives 0-1 bounded Gower)      #    computed explicitly, upfront
 fs_dimensionality(space)                    # 2. evaluate before choosing dims
 fs_quality(space)
 space <- fs_reduce(space, dims = 3)         # 3. reduce (and optionally rotate)
@@ -40,6 +42,11 @@ space building, import (`as_fspace()`), reduction and rotation.
 - **Two engines.** Indices are available from trait probability densities
   (`engine = "prob"`) and from point-based methods (`engine = "points"`),
   behind the same interface.
+- **Dissimilarities are explicit and bounded.** `fs_space()` never computes
+  dissimilarities internally; `fs_dist()` builds them from any mix of trait
+  types (including intraspecific variability via distribution overlap), and
+  every trait contributes a distance bounded 0-1, so Rao/MPD keep an
+  interpretable scale.
 - **Bandwidths are never silent.** Smoothing parameters are attached to the
   ecological entity they describe, stored in every object, printed in every
   summary, and stress-testable with `fs_sensitivity()`.

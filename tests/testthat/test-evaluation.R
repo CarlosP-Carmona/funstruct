@@ -31,18 +31,19 @@ test_that("fs_quality: PCA preserves distances perfectly at full dims", {
 })
 
 test_that("fs_quality works on PCoA spaces via the stored dist", {
-  sp <- fs_space(toy_traits(), method = "pcoa", correction = "cailliez")
+  sp <- fs_space(fs_dist(toy_traits()), method = "pcoa",
+                 correction = "cailliez")
   q <- fs_quality(sp, dims = 1:4)
   expect_identical(nrow(q), 4L)
   expect_true(all(q$mSD >= 0))
 })
 
-test_that("fs_quality validates dims and recovers Gower for mixed traits", {
+test_that("fs_quality validates dims and uses the stored Gower dist", {
   sp <- fs_space(toy_traits(), method = "pca")
   expect_error(fs_quality(sp, dims = 99), "between 1 and")
   xm <- toy_traits()
   xm$cat <- factor(rep(letters[1:3], length.out = nrow(xm)))
-  spm <- fs_space(xm, method = "pcoa")
+  spm <- fs_space(fs_dist(xm), method = "pcoa")
   expect_s3_class(fs_quality(spm, dims = 1:3), "fs_quality")
 })
 
@@ -64,7 +65,7 @@ test_that("fs_dimensionality parallel recovers the 2-factor structure", {
 })
 
 test_that("fs_dimensionality stress scans NMDS dimensionalities", {
-  sp <- fs_space(toy_traits(), method = "nmds", seed = 3L)
+  sp <- fs_space(fs_dist(toy_traits()), method = "nmds", seed = 3L)
   d <- fs_dimensionality(sp, method = "stress", k_max = 3L)
   expect_identical(nrow(d$curve), 3L)
   expect_true(all(is.finite(d$curve$stress)))
@@ -73,7 +74,7 @@ test_that("fs_dimensionality stress scans NMDS dimensionalities", {
 })
 
 test_that("fs_dimensionality errors informatively where undefined", {
-  spn <- fs_space(toy_traits(), method = "nmds", seed = 1L)
+  spn <- fs_space(fs_dist(toy_traits()), method = "nmds", seed = 1L)
   expect_error(fs_dimensionality(spn, method = "elbow"), "eigenvalues")
   spp <- fs_space(toy_traits(), method = "pca")
   expect_error(fs_dimensionality(spp, method = "stress"), "distance matrix")
@@ -139,6 +140,6 @@ test_that("fs_itv validates its inputs", {
   sp <- fs_space(x, method = "pca")
   expect_error(fs_itv(sp, x[1:2, ], c("spX", "spY")), "absent")
   expect_error(fs_itv(sp, x[1:2, -1], rownames(x)[1:2]), "lacks trait")
-  spo <- fs_space(x, method = "pcoa")
+  spo <- fs_space(fs_dist(x), method = "pcoa")
   expect_error(fs_itv(spo, x[1:2, ], rownames(x)[1:2]), "PCA")
 })

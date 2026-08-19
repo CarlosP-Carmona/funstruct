@@ -16,7 +16,8 @@ from \code{\link[=fs_impute]{fs_impute()}} (it carries the \code{imputed} attrib
 units with at least one imputed value are projected: the fully
 empirical units are the material the space should be built from, not
 projected into it (a message reports how many were skipped). To
-override, subset the object first (subsetting drops the attribute).}
+override and project every row, remove the attribute first:
+\code{attr(newdata, "imputed") <- NULL}.}
 
 \item{add}{Logical; if \code{TRUE}, return the \code{fspace} with the projected
 units appended to its coordinates (flagged \code{projected} in the unit

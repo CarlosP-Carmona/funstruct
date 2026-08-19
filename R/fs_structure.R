@@ -188,21 +188,26 @@ print.fstructure <- function(x, ...) {
       M <- length(all_cells)
       row$evenness <- sum(pmin(pc, 1 / M))
     }
-    if ("divergence" %in% indices || "dispersion" %in% indices ||
-        "cwm" %in% indices) {
-      cog <- colSums(coords_c * pc)
-      dev <- sweep(coords_c, 2L, cog)
-      dcog <- sqrt(rowSums(dev^2))
-      if ("dispersion" %in% indices) row$dispersion <- sum(pc * dcog)
-      if ("divergence" %in% indices) {
-        dbar <- mean(dcog)
-        deltaD <- sum(pc * (dcog - dbar))
-        deltaAbs <- sum(pc * abs(dcog - dbar))
-        row$divergence <- (deltaD + dbar) / (deltaAbs + dbar)
+    if ("dispersion" %in% indices || "cwm" %in% indices) {
+      # density-weighted centre: the community-weighted mean position
+      cog_w <- colSums(coords_c * pc)
+      if ("dispersion" %in% indices) {
+        dev_w <- sweep(coords_c, 2L, cog_w)
+        row$dispersion <- sum(pc * sqrt(rowSums(dev_w^2)))
       }
       if ("cwm" %in% indices) {
-        for (j in seq_len(d)) row[[paste0("cwm_", j)]] <- cog[j]
+        for (j in seq_len(d)) row[[paste0("cwm_", j)]] <- cog_w[j]
       }
+    }
+    if ("divergence" %in% indices) {
+      # TPD::REND convention: centre of gravity is the UNWEIGHTED mean of
+      # the occupied cells; densities weight only the deviances
+      cog_u <- colMeans(coords_c)
+      dcog <- sqrt(rowSums(sweep(coords_c, 2L, cog_u)^2))
+      dbar <- mean(dcog)
+      deltaD <- sum(pc * (dcog - dbar))
+      deltaAbs <- sum(pc * abs(dcog - dbar))
+      row$divergence <- (deltaD + dbar) / (deltaAbs + dbar)
     }
     if (need_dissim) {
       wp <- w[present]

@@ -112,7 +112,7 @@ plot.fspace <- function(x, dims = c(1L, 2L), color_by = NULL,
                  xlab = lab[1L], ylab = lab[2L], las = 1, ...)
   graphics::abline(h = 0, v = 0, lty = 3, col = "grey70")
 
-  if (isTRUE(loadings) && !is.null(x$loadings)) {
+  if (isTRUE(loadings) && !is.null(x$loadings) && nrow(x$loadings) > 0L) {
     ld <- x$loadings[, dims, drop = FALSE]
     sc <- 0.8 * min(apply(abs(xy), 2L, max)) / max(abs(ld))
     graphics::arrows(0, 0, ld[, 1L] * sc, ld[, 2L] * sc,

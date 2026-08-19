@@ -40,6 +40,12 @@ fs_reduce <- function(space, dims) {
            "refitted. Rebuild it with fs_space() or import the refit via ",
            "as_fspace().", call. = FALSE)
     }
+    if (!is.null(space$loadings)) {
+      warning("Refitting the NMDS changes the axes; the post-hoc ",
+              "loadings have been removed. Re-run fs_loadings().",
+              call. = FALSE)
+      space$loadings <- NULL
+    }
     fit <- MASS::isoMDS(space$dist, k = dims, trace = FALSE)
     coords <- fit$points
     colnames(coords) <- paste0("NMDS", seq_len(ncol(coords)))
@@ -49,9 +55,19 @@ fs_reduce <- function(space, dims) {
   } else {
     space$dims_full <- d_now
     space$coords <- space$coords[, seq_len(dims), drop = FALSE]
+    la <- attributes(space$loadings)[c("method", "posthoc", "categorical")]
     for (slot in c("loadings", "eigenvectors", "proj")) {
       if (!is.null(space[[slot]])) {
         space[[slot]] <- space[[slot]][, seq_len(dims), drop = FALSE]
+      }
+    }
+    # subsetting drops the post-hoc attributes; restore (and trim) them
+    if (!is.null(space$loadings) && isTRUE(la$posthoc)) {
+      attr(space$loadings, "method") <- la$method
+      attr(space$loadings, "posthoc") <- TRUE
+      if (!is.null(la$categorical)) {
+        attr(space$loadings, "categorical") <-
+          la$categorical[, seq_len(dims), drop = FALSE]
       }
     }
     if (!is.null(space$eig)) {

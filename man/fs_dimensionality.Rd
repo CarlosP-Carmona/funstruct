@@ -6,9 +6,10 @@
 \usage{
 fs_dimensionality(
   space,
-  method = c("auc", "elbow", "parallel", "stress"),
+  method = c("auc", "elbow", "parallel", "end", "stress"),
   n_perm = 199L,
   k_max = NULL,
+  q = 2,
   seed = NULL
 )
 }
@@ -22,16 +23,21 @@ fs_dimensionality(
 \item{k_max}{Largest dimensionality scanned by \code{method = "stress"}
 (default \code{min(4, n - 2)}).}
 
+\item{q}{Hill order for \code{method = "end"} (default 2, the inverse
+Simpson convention of Beccari & Carmona 2024; \code{q = 1} gives the
+exponential of the Shannon entropy of the eigenvalue shares).}
+
 \item{seed}{Random seed for the stochastic criteria.}
 }
 \value{
 A list of class \code{fs_dimensionality} with elements \code{method},
 \code{suggested} and \code{curve} (a data.frame; its columns depend on the
-method). \code{print()} and \code{plot()} methods are provided.
+method); \code{method = "end"} adds \code{end} (the continuous value) and \code{q}.
+\code{print()} and \code{plot()} methods are provided.
 }
 \description{
 Suggests how many dimensions are needed to describe a trait space,
-before reducing it with \code{\link[=fs_reduce]{fs_reduce()}}. Four criteria are available:
+before reducing it with \code{\link[=fs_reduce]{fs_reduce()}}. Five criteria are available:
 }
 \details{
 \itemize{
@@ -43,6 +49,14 @@ recoverable initial dissimilarities.
 \item \code{"parallel"}: Horn's parallel analysis (PCA only): keep axes whose
 eigenvalue exceeds the 95th percentile of eigenvalues obtained after
 permuting each trait independently.
+\item \code{"end"}: effective number of dimensions (PCA only): the Hill number
+of order \code{q} of the eigenvalue shares (Beccari & Carmona 2024). With
+the default \code{q = 2} this is the inverse Simpson index of the
+eigenvalues: a continuous measure of dimensionality, equal to the
+number of traits when all axes carry equal variance and approaching
+1 as one axis dominates. The suggested (integer) dimensionality is
+the rounded END; the continuous value is in \verb{$end}. See
+\code{\link[=fs_trait_dim]{fs_trait_dim()}} for how individual traits contribute to it.
 \item \code{"stress"}: NMDS stress against dimensionality (refits the NMDS at
 each candidate \code{k}); suggests the smallest \code{k} with stress <= 0.10
 (a common rule of thumb).
@@ -60,7 +74,12 @@ plot(dpar)
 \references{
 Mouillot, D. et al. (2021) The dimensionality and structure
 of species trait spaces. \emph{Ecology Letters}, 24, 1988-2009.
+
+Beccari, E. & Carmona, C.P. (2024) Aboveground and belowground sizes
+are aligned in the unified spectrum of plant form and function.
+\emph{Nature Communications}, 15. \doi{10.1038/s41467-024-53180-x}
 }
 \seealso{
-\code{\link[=fs_quality]{fs_quality()}}, \code{\link[=fs_adequacy]{fs_adequacy()}}, \code{\link[=fs_reduce]{fs_reduce()}}
+\code{\link[=fs_quality]{fs_quality()}}, \code{\link[=fs_adequacy]{fs_adequacy()}}, \code{\link[=fs_reduce]{fs_reduce()}},
+\code{\link[=fs_trait_dim]{fs_trait_dim()}}
 }

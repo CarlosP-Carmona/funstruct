@@ -26,3 +26,25 @@
 * `plot.fspace()` gains `asp = 1` as default: both axes are in the same
   units, so one unit measures the same length on x and y and distances in
   the ordination read true. Override with `asp = NA` for free scaling.
+* `fs_dimensionality()` gains `method = "end"`: the effective number of
+  dimensions (Hill number of order `q` of the eigenvalue shares; q = 2 =
+  inverse Simpson, Beccari & Carmona 2024 Nat Commun), PCA spaces only.
+* New `fs_trait_dim()`: contribution of each trait (or one target trait)
+  to the effective dimensionality, with a permutation null in which the
+  target trait is randomized (a random trait adds ~1 effective
+  dimension). Supports iterative backward selection of the simplest
+  sufficient trait set.
+* New `fs_angles()`: pairwise angles between traits in the retained
+  space, from their loading vectors across axes (Bueno et al. 2023;
+  Beccari & Carmona 2024) -- the multidimensional view of trait
+  structure that bivariate projections miss. In the full PCA space the
+  angles equal `acos(cor(traits))` exactly. Works for PCA directly and
+  for PCoA/NMDS after `fs_loadings()`; heatmap `plot()` method. With
+  `profile = TRUE`, angles are recomputed at every dimensionality and
+  compared with the full-space angles (correlation + mean absolute
+  angular deviation): a trait-side dimensionality diagnostic
+  complementing the unit-side `fs_quality()`.
+* New `fs_loadings()`: post-hoc trait-axis correlations for PCoA/NMDS
+  spaces (Pearson or Spearman; categorical traits reported as eta in a
+  `categorical` attribute), stored as `$loadings` so `plot()` draws trait
+  arrows. Descriptive only: projection stays PCA-only.

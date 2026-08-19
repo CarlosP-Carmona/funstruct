@@ -3,7 +3,7 @@
 #' Evaluate the dimensionality of a trait space
 #'
 #' Suggests how many dimensions are needed to describe a trait space,
-#' before reducing it with [fs_reduce()]. Four criteria are available:
+#' before reducing it with [fs_reduce()]. Five criteria are available:
 #'
 #' * `"auc"` (default): elbow of the quality curve from [fs_quality()]
 #'   (mSD against dimensionality), in the spirit of the quality-based
@@ -13,6 +13,14 @@
 #' * `"parallel"`: Horn's parallel analysis (PCA only): keep axes whose
 #'   eigenvalue exceeds the 95th percentile of eigenvalues obtained after
 #'   permuting each trait independently.
+#' * `"end"`: effective number of dimensions (PCA only): the Hill number
+#'   of order `q` of the eigenvalue shares (Beccari & Carmona 2024). With
+#'   the default `q = 2` this is the inverse Simpson index of the
+#'   eigenvalues: a continuous measure of dimensionality, equal to the
+#'   number of traits when all axes carry equal variance and approaching
+#'   1 as one axis dominates. The suggested (integer) dimensionality is
+#'   the rounded END; the continuous value is in `$end`. See
+#'   [fs_trait_dim()] for how individual traits contribute to it.
 #' * `"stress"`: NMDS stress against dimensionality (refits the NMDS at
 #'   each candidate `k`); suggests the smallest `k` with stress <= 0.10
 #'   (a common rule of thumb).
@@ -22,14 +30,23 @@
 #' @param n_perm Number of permutations for `method = "parallel"`.
 #' @param k_max Largest dimensionality scanned by `method = "stress"`
 #'   (default `min(4, n - 2)`).
+#' @param q Hill order for `method = "end"` (default 2, the inverse
+#'   Simpson convention of Beccari & Carmona 2024; `q = 1` gives the
+#'   exponential of the Shannon entropy of the eigenvalue shares).
 #' @param seed Random seed for the stochastic criteria.
 #'
 #' @return A list of class `fs_dimensionality` with elements `method`,
 #'   `suggested` and `curve` (a data.frame; its columns depend on the
-#'   method). `print()` and `plot()` methods are provided.
+#'   method); `method = "end"` adds `end` (the continuous value) and `q`.
+#'   `print()` and `plot()` methods are provided.
 #' @references Mouillot, D. et al. (2021) The dimensionality and structure
 #'   of species trait spaces. *Ecology Letters*, 24, 1988-2009.
-#' @seealso [fs_quality()], [fs_adequacy()], [fs_reduce()]
+#'
+#'   Beccari, E. & Carmona, C.P. (2024) Aboveground and belowground sizes
+#'   are aligned in the unified spectrum of plant form and function.
+#'   *Nature Communications*, 15. \doi{10.1038/s41467-024-53180-x}
+#' @seealso [fs_quality()], [fs_adequacy()], [fs_reduce()],
+#'   [fs_trait_dim()]
 #' @examples
 #' data(gspff)
 #' sp <- fs_space(gspff[1:300, ], method = "pca")
@@ -41,8 +58,9 @@
 #' @export
 fs_dimensionality <- function(space,
                               method = c("auc", "elbow", "parallel",
-                                         "stress"),
-                              n_perm = 199L, k_max = NULL, seed = NULL) {
+                                         "end", "stress"),
+                              n_perm = 199L, k_max = NULL, q = 2,
+                              seed = NULL) {
   stopifnot(is_fspace(space))
   method <- match.arg(method)
   if (!is.null(seed)) set.seed(seed)
@@ -50,6 +68,7 @@ fs_dimensionality <- function(space,
     auc      = .dim_auc(space),
     elbow    = .dim_elbow(space),
     parallel = .dim_parallel(space, n_perm),
+    end      = .dim_end(space, q),
     stress   = .dim_stress(space, k_max)
   )
   out$method <- method
@@ -61,6 +80,10 @@ fs_dimensionality <- function(space,
 #' @export
 print.fs_dimensionality <- function(x, ...) {
   cat("<fs_dimensionality> method:", x$method, "\n")
+  if (!is.null(x$end)) {
+    cat("Effective number of dimensions (q = ", x$q, "): ",
+        round(x$end, 2), "\n", sep = "")
+  }
   if (is.na(x$suggested)) {
     cat("No dimensionality satisfied the criterion; inspect the curve.\n")
   } else {
@@ -126,6 +149,29 @@ plot.fs_dimensionality <- function(x, ...) {
        curve = data.frame(axis = seq_len(p),
                           eigenvalue = obs,
                           null95 = thr))
+}
+
+.dim_end <- function(space, q) {
+  if (space$method != "pca" || is.null(space$eig)) {
+    stop("The effective number of dimensions is computed from PCA ",
+         "eigenvalues; build the space with method = \"pca\".",
+         call. = FALSE)
+  }
+  ev <- space$eig[space$eig > 0]
+  end <- .end_hill(ev, q)
+  list(suggested = max(1L, as.integer(round(end))),
+       end = end, q = q,
+       curve = data.frame(axis = seq_along(ev), eigenvalue = ev,
+                          share = ev / sum(ev)))
+}
+
+# Hill number of order q of the eigenvalue shares (END; Beccari &
+# Carmona 2024, Nat Commun). q = 2: inverse Simpson.
+.end_hill <- function(ev, q) {
+  ev <- ev[ev > sqrt(.Machine$double.eps)]
+  p <- ev / sum(ev)
+  if (abs(q - 1) < 1e-10) return(exp(-sum(p * log(p))))
+  sum(p^q)^(1 / (1 - q))
 }
 
 .dim_stress <- function(space, k_max) {

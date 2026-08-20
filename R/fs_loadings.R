@@ -4,7 +4,7 @@
 #'
 #' Computes correlations between the original traits and the axes of a
 #' PCoA or NMDS space, and stores them as the space's `loadings` so that
-#' [plot.fspace()] can draw trait arrows. This formalizes standard
+#' `plot()` can draw trait arrows. This formalizes standard
 #' practice for dissimilarity-based ordinations (compare
 #' `mFD::traits.faxes.cor()` and `vegan::envfit()`).
 #'
@@ -44,7 +44,7 @@
 #'   matrix of correlations, with attributes `method` and (when
 #'   categorical traits are present) `categorical` (traits x axes matrix
 #'   of eta values).
-#' @seealso [fs_space()], [fs_dist()], [plot.fspace()]
+#' @seealso [fs_space()], [fs_dist()], [fs_angles()]
 #' @examples
 #' data(gspff)
 #' x <- gspff[1:150, ]
@@ -63,7 +63,8 @@ fs_loadings <- function(space, traits, method = c("pearson", "spearman")) {
          call. = FALSE)
   }
   traits <- as.data.frame(traits)
-  if (is.null(rownames(traits))) {
+  if (is.null(rownames(traits)) ||
+      identical(rownames(traits), as.character(seq_len(nrow(traits))))) {
     stop("`traits` must have row names identifying the units.",
          call. = FALSE)
   }

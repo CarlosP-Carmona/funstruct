@@ -27,7 +27,7 @@ of eta values).
 \description{
 Computes correlations between the original traits and the axes of a
 PCoA or NMDS space, and stores them as the space's \code{loadings} so that
-\code{\link[=plot.fspace]{plot.fspace()}} can draw trait arrows. This formalizes standard
+\code{plot()} can draw trait arrows. This formalizes standard
 practice for dissimilarity-based ordinations (compare
 \code{mFD::traits.faxes.cor()} and \code{vegan::envfit()}).
 }
@@ -65,5 +65,5 @@ round(sp$loadings[, 1:2], 2)
 plot(sp)   # trait arrows, now also for PCoA
 }
 \seealso{
-\code{\link[=fs_space]{fs_space()}}, \code{\link[=fs_dist]{fs_dist()}}, \code{\link[=plot.fspace]{plot.fspace()}}
+\code{\link[=fs_space]{fs_space()}}, \code{\link[=fs_dist]{fs_dist()}}, \code{\link[=fs_angles]{fs_angles()}}
 }

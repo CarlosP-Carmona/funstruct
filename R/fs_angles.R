@@ -199,7 +199,11 @@ plot.fs_angles <- function(x, which = c("angles", "profile"), ...) {
   A <- x$angles
   k <- nrow(A)
   full <- if (x$degrees) 180 else pi
-  pal <- grDevices::hcl.colors(101, "Blue-Red 2")
+  # fixed hex ramp (ColorBrewer RdBu endpoints): platform-independent,
+  # unlike named hcl palettes (hcl.colors("Blue-Red 2") errored on macOS)
+  pal <- grDevices::colorRampPalette(
+    c("#2166AC", "#F7F7F7", "#B2182B")
+  )(101)
   z <- t(A[k:1, , drop = FALSE])   # z[x, y] drawn at (x, y)
   graphics::image(seq_len(k), seq_len(k), z,
                   zlim = c(0, full), col = pal, axes = FALSE,

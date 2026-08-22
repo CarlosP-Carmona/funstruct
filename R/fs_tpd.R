@@ -119,10 +119,12 @@ fs_grid <- function(space, res = NULL, padding = 0.05) {
 #'   are renormalized (TPD convention; default 0.99). `alpha = 1` keeps
 #'   the full grid.
 #'
-#' @return The `fspace` with two new elements: `tpds` (grid, alpha, and a
-#'   sparse per-unit representation: kept cell indices and renormalized
-#'   probabilities summing to 1) and `bw` (attachment, selector, per-unit
-#'   bandwidths, imputation flags).
+#' @return The `fspace` with two new elements: `tpds` (grid, alpha,
+#'   estimation metadata, and the level stack `levels`, initialized with
+#'   the bottom level `"unit"`: one sparse TPD per unit -- kept cell
+#'   indices and renormalized probabilities summing to 1; coarser levels
+#'   are added with [fs_aggregate()]) and `bw` (attachment, selector,
+#'   per-unit bandwidths, imputation flags).
 #' @references Carmona, C.P., de Bello, F., Mason, N.W.H. & Leps, J.
 #'   (2016) Traits without borders: integrating functional diversity
 #'   across scales. *Trends in Ecology & Evolution*, 31, 382-394.
@@ -189,10 +191,14 @@ fs_tpd <- function(space, ids = NULL, obs = NULL, sds = NULL,
     units_tpd[[u]] <- .alpha_trim(p, alpha)
   }
 
-  space$tpds <- list(grid = grid, alpha = alpha, units = units_tpd,
+  space$tpds <- list(grid = grid, alpha = alpha,
                      n_obs = vapply(est$X, nrow, integer(1L)),
                      route = est$route,
-                     X = est$X)
+                     X = est$X,
+                     levels = list(unit = list(tpds = units_tpd,
+                                               from = NULL, members = NULL,
+                                               weights_rule = NULL,
+                                               n_children = NULL)))
   space$bw <- list(attachment = est$attachment, selector = est$selector,
                    values = est$H, imputed = est$imputed)
   space

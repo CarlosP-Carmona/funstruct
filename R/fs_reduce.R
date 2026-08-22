@@ -29,8 +29,9 @@ fs_reduce <- function(space, dims) {
          d_now, ").", call. = FALSE)
   }
   if (!is.null(space$tpds)) {
-    warning("Reducing the space invalidates previously estimated TPDs; ",
-            "they have been removed. Re-run fs_tpd().", call. = FALSE)
+    warning("Reducing the space invalidates the estimated TPDs and any ",
+            "aggregated levels built from them; all have been removed. ",
+            "Re-run fs_tpd() (and fs_aggregate()).", call. = FALSE)
     space$tpds <- NULL
     space$bw <- NULL
   }
@@ -139,8 +140,9 @@ fs_rotate <- function(space, method = "varimax",
     stop("Rotation requires at least two retained dimensions.", call. = FALSE)
   }
   if (!is.null(space$tpds)) {
-    warning("Rotating the space invalidates previously estimated TPDs; ",
-            "they have been removed. Re-run fs_tpd().", call. = FALSE)
+    warning("Rotating the space invalidates the estimated TPDs and any ",
+            "aggregated levels built from them; all have been removed. ",
+            "Re-run fs_tpd() (and fs_aggregate()).", call. = FALSE)
     space$tpds <- NULL
     space$bw <- NULL
   }

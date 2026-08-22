@@ -77,9 +77,9 @@ test_that("fs_pool warns, pools, and yields assemblage-level TPDs", {
   expect_warning(
     expect_message(pool <- fs_pool(sp, ti$ids, comm), "plug-in bandwidth"),
     "pseudoreplication")
-  expect_identical(names(pool$tpds$units), c("A", "B"))
-  for (a in names(pool$tpds$units)) {
-    expect_equal(sum(pool$tpds$units[[a]]$probs), 1, tolerance = 1e-12)
+  expect_identical(names(pool$tpds$levels$unit$tpds), c("A", "B"))
+  for (a in names(pool$tpds$levels$unit$tpds)) {
+    expect_equal(sum(pool$tpds$levels$unit$tpds[[a]]$probs), 1, tolerance = 1e-12)
   }
   expect_identical(pool$tpds$route, "pooled")
   expect_identical(pool$bw$attachment, "common")

@@ -32,10 +32,10 @@ test_that("fs_tpd (obs route): TPDs integrate to 1 and store bandwidths", {
   ti <- toy_individuals()
   sp <- fs_space(ti$traits, method = "raw", scale = FALSE)
   tp <- fs_tpd(sp, ids = ti$ids, alpha = 0.99)
-  expect_named(tp$tpds$units, c("spA", "spB", "spC"))
-  for (u in names(tp$tpds$units)) {
-    expect_equal(sum(tp$tpds$units[[u]]$probs), 1, tolerance = 1e-12)
-    expect_true(length(tp$tpds$units[[u]]$cells) < tp$tpds$grid$n_cells)
+  expect_named(tp$tpds$levels$unit$tpds, c("spA", "spB", "spC"))
+  for (u in names(tp$tpds$levels$unit$tpds)) {
+    expect_equal(sum(tp$tpds$levels$unit$tpds[[u]]$probs), 1, tolerance = 1e-12)
+    expect_true(length(tp$tpds$levels$unit$tpds[[u]]$cells) < tp$tpds$grid$n_cells)
   }
   expect_identical(tp$bw$attachment, "unit")
   expect_identical(tp$bw$selector, "plugin")
@@ -57,7 +57,7 @@ test_that("fs_tpd matches ks::kde densities with a fixed bandwidth", {
   p_ref <- ref * g$cell_volume
   p_ref <- p_ref / sum(p_ref)
   ours <- numeric(g$n_cells)
-  keep <- tp$tpds$units$spA
+  keep <- tp$tpds$levels$unit$tpds$spA
   ours[keep$cells] <- keep$probs
   expect_equal(ours, unname(p_ref), tolerance = 1e-8)
 })
@@ -67,13 +67,13 @@ test_that("fs_tpd 1D route agrees with ks and respects alpha trimming", {
   sp0 <- fs_space(ti$traits, method = "pca")
   sp1 <- fs_reduce(sp0, 1L)
   tp <- fs_tpd(sp1, ids = ti$ids, alpha = 0.9)
-  for (u in names(tp$tpds$units)) {
-    expect_equal(sum(tp$tpds$units[[u]]$probs), 1, tolerance = 1e-12)
+  for (u in names(tp$tpds$levels$unit$tpds)) {
+    expect_equal(sum(tp$tpds$levels$unit$tpds[[u]]$probs), 1, tolerance = 1e-12)
   }
   # trimming at 0.9 keeps fewer cells than at 1
   tp_full <- fs_tpd(sp1, ids = ti$ids, alpha = 1)
-  expect_lt(length(tp$tpds$units$spA$cells),
-            length(tp_full$tpds$units$spA$cells))
+  expect_lt(length(tp$tpds$levels$unit$tpds$spA$cells),
+            length(tp_full$tpds$levels$unit$tpds$spA$cells))
 })
 
 test_that("fs_tpd (means route): sds-based TPDs recover the imposed kernel", {
@@ -91,7 +91,7 @@ test_that("fs_tpd (means route): sds-based TPDs recover the imposed kernel", {
     stats::dnorm(g$cells[, 2L], co[2L], 0.5)
   p_ref <- dens / sum(dens)
   ours <- numeric(g$n_cells)
-  keep <- tp$tpds$units$u1
+  keep <- tp$tpds$levels$unit$tpds$u1
   ours[keep$cells] <- keep$probs
   expect_equal(ours, unname(p_ref), tolerance = 1e-6)
 })
@@ -116,7 +116,7 @@ test_that("fs_tpd imputes bandwidths for tiny units with a warning", {
   expect_match(w, "average bandwidth", all = FALSE)
   expect_match(w, "fs_adequacy", all = FALSE)
   expect_true(tp$bw$imputed[["spTiny"]])
-  expect_equal(sum(tp$tpds$units$spTiny$probs), 1, tolerance = 1e-12)
+  expect_equal(sum(tp$tpds$levels$unit$tpds$spTiny$probs), 1, tolerance = 1e-12)
 })
 
 test_that("fs_tpd validates inputs and dimensionality", {

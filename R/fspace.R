@@ -64,7 +64,9 @@ print.fspace <- function(x, ...) {
     cat("  stress: ", round(x$stress, 3), "\n", sep = "")
   }
   cat("  TPDs: ", if (is.null(x$tpds)) "not estimated" else
-    paste0("estimated (alpha = ", x$tpds$alpha, ")"), "\n", sep = "")
+    paste0("estimated (alpha = ", x$tpds$alpha, "; levels: ",
+           paste(names(x$tpds$levels), collapse = " < "), ")"),
+    "\n", sep = "")
   invisible(x)
 }
 
@@ -81,6 +83,26 @@ summary.fspace <- function(object, ...) {
           paste(utils::head(imp_names, 5L), collapse = ", "),
           if (sum(object$bw$imputed) > 5L) ", ...", "\n", sep = "")
     }
+  }
+  if (!is.null(object$tpds) && !is.null(object$tpds$levels)) {
+    lv <- object$tpds$levels
+    n_cells <- object$tpds$grid$n_cells
+    cat("\nTPD level stack\n")
+    stack <- data.frame(
+      level = names(lv),
+      groups = vapply(lv, function(l) length(l$tpds), integer(1L)),
+      from = vapply(lv, function(l) {
+        if (is.null(l$from)) "-" else l$from
+      }, character(1L)),
+      weights = vapply(lv, function(l) {
+        if (is.null(l$weights_rule)) "-" else l$weights_rule
+      }, character(1L)),
+      occupancy = vapply(lv, function(l) {
+        cells <- vapply(l$tpds, function(t) length(t$cells), integer(1L))
+        paste0(round(100 * mean(cells) / n_cells, 1), "%")
+      }, character(1L)),
+      stringsAsFactors = FALSE)
+    print.data.frame(stack, row.names = FALSE)
   }
   n_imp <- sum(object$units$imputed_traits, na.rm = TRUE)
   if (isTRUE(n_imp > 0)) {

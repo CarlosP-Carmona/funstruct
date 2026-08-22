@@ -47,7 +47,7 @@ fs_null <- function(space, comm = NULL, engine = c("prob", "points"),
   engine <- match.arg(engine)
   model <- match.arg(model)
   obs <- fs_structure(space, comm, engine = engine, indices = indices)
-  unit_names <- if (engine == "prob") names(space$tpds$units) else
+  unit_names <- if (engine == "prob") names(.unit_tpds(space)) else
     rownames(space$coords)
   W <- .as_comm(comm, unit_names, relative = TRUE)
 

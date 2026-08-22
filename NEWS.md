@@ -1,5 +1,45 @@
 # funstruct 0.0.0.9000
 
+## The TPD level stack
+
+* New `fs_aggregate()`: TPDs are now storable at every level of a
+  user-defined nesting (individuals -> species -> communities ->
+  habitats -> ... -> biomes) through one closed aggregation operator: a
+  weighted mixture of TPDs is a TPD on the same grid, so aggregation can
+  be applied repeatedly. Groupings can be a community-style matrix
+  (many-to-many, entries = weights) or a named child -> parent vector;
+  weighting per level is explicit (`"groups"`, `"equal"`, or a named
+  numeric vector such as areas) and recorded in the stored level.
+  Probability-mass trimming (`alpha`) happens once, at estimation in
+  `fs_tpd()`, never during aggregation.
+* Storage layout: `space$tpds$levels` is the level stack;
+  `fs_tpd()`/`fs_pool()` create its bottom level `"unit"`. The former
+  `space$tpds$units` slot is gone (use
+  `space$tpds$levels$unit$tpds`). `print()`/`summary()` show the stack,
+  including per-level grid occupancy.
+* New `fs_level_weights()`: effective bottom-unit weights of any stored
+  level (the product of within-level relative weights along the chain).
+* New `fs_get_tpd()` + plot method: extract and plot any stored TPD
+  (1D profile or 2D image + contours).
+* `fs_structure()` and `fs_beta()` gain a `level` argument (mutually
+  exclusive with `comm`): compute on the groups of a stored level.
+  `fs_structure(space, comm = )` remains one-shot and stores nothing.
+  `fs_beta(pooled, level = "unit")` replaces the identity-community
+  trick for `fs_pool()` output.
+* `fs_partition()` gains a `levels` argument (stored levels, fine to
+  coarse); the `comm` + `hierarchy` route now feeds the exact same
+  internal engines.
+* Unbalanced hierarchies: at every grouping scale, alpha is now the mean
+  of group values weighted by the number of assemblages per group
+  (Crist et al. 2003), matching the pooled gamma; balanced designs are
+  unchanged.
+* Internally, all assemblage TPDs are built by a single mixture operator
+  shared by `fs_aggregate()`, `fs_structure()`, `fs_beta()` and
+  `fs_redundancy()`; regression tests pin the pre-refactor numerical
+  outputs on the grassland data.
+
+## Earlier development
+
 * Initial scaffold: `fspace` class, `fs_space()`, `as_fspace()`, `fs_reduce()`, `fs_rotate()`.
 * New `fs_dist()`: Gower-style dissimilarities from multiple trait types
   (quantitative, categorical, distributions from means + sds or raw

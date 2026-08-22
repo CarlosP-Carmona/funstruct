@@ -26,10 +26,10 @@
 #' @param grid An `fs_grid`; default `fs_grid(space)`.
 #' @param alpha Probability mass retained (default 0.99).
 #'
-#' @return The `fspace` with `tpds` whose units are the *assemblages*
-#'   (one pooled TPD each); downstream functions such as [fs_beta()] can
-#'   then compare assemblages directly (use an identity community
-#'   matrix).
+#' @return The `fspace` with `tpds` whose bottom (`"unit"`) level holds
+#'   the *assemblages* (one pooled TPD each); downstream functions can
+#'   then compare assemblages directly, e.g.
+#'   `fs_beta(pooled, level = "unit")`.
 #' @seealso [fs_tpd()] for the recommended two-step construction.
 #' @examples
 #' set.seed(1)
@@ -41,8 +41,9 @@
 #' comm <- rbind(P = c(a = 1, b = 1, c = 0),
 #'               Q = c(a = 0, b = 1, c = 1))
 #'
-#' pooled <- fs_pool(sp, ids, comm)   # note the warning: this is the
-#' names(pooled$tpds$units)           # approach the package discourages
+#' pooled <- fs_pool(sp, ids, comm)     # note the warning: this is the
+#' names(pooled$tpds$levels$unit$tpds)  # approach the package discourages
+#' fs_beta(pooled, level = "unit")$dissimilarity
 #' @export
 fs_pool <- function(space, ids, comm, bw = NULL, grid = NULL,
                     alpha = 0.99) {
@@ -89,9 +90,13 @@ fs_pool <- function(space, ids, comm, bw = NULL, grid = NULL,
     X_list[[a]] <- Xa
     Hs[[a]] <- H
   }
-  space$tpds <- list(grid = grid, alpha = alpha, units = units_tpd,
+  space$tpds <- list(grid = grid, alpha = alpha,
                      n_obs = vapply(X_list, nrow, integer(1L)),
-                     route = "pooled", X = X_list)
+                     route = "pooled", X = X_list,
+                     levels = list(unit = list(tpds = units_tpd,
+                                               from = NULL, members = NULL,
+                                               weights_rule = NULL,
+                                               n_children = NULL)))
   space$bw <- list(attachment = "common", selector =
                      if (is.null(bw)) "plugin" else "user",
                    values = Hs,

@@ -35,7 +35,7 @@ fs_redundancy <- function(space, comm = NULL, q = seq(0, 2, 0.1)) {
   if (is.null(space$tpds)) {
     stop("fs_redundancy() needs TPDs: run fs_tpd() first.", call. = FALSE)
   }
-  units <- space$tpds$units
+  units <- .unit_tpds(space)
   W <- .as_comm(comm, names(units), relative = TRUE)
   rows <- list()
   for (a in seq_len(nrow(W))) {
@@ -44,24 +44,12 @@ fs_redundancy <- function(space, comm = NULL, q = seq(0, 2, 0.1)) {
     for (qq in q) {
       wq <- w[present]^qq
       wq <- wq / sum(wq)
-      parts <- lapply(seq_along(present), function(k) {
-        u <- present[k]
-        list(cells = units[[u]]$cells, p = units[[u]]$probs * wq[k])
-      })
-      all_cells <- sort(unique(unlist(lapply(parts, `[[`, "cells"))))
-      pc <- numeric(length(all_cells))
-      s_cell <- integer(length(all_cells))
-      pos <- seq_along(all_cells)
-      names(pos) <- all_cells
-      for (m in parts) {
-        j <- pos[as.character(m$cells)]
-        pc[j] <- pc[j] + m$p
-        s_cell[j] <- s_cell[j] + 1L
-      }
-      pc <- pc / sum(pc)
+      wfull <- numeric(length(units))
+      wfull[present] <- wq
+      mixed <- .mix_tpds(units, wfull, counts = TRUE)
       rows[[length(rows) + 1L]] <- data.frame(
         assemblage = rownames(W)[a], q = qq,
-        redundancy = sum(pc * s_cell) - 1)
+        redundancy = sum(mixed$probs * mixed$counts) - 1)
     }
   }
   out <- list(values = do.call(rbind, rows), q = q)
@@ -145,7 +133,7 @@ fs_itv_contribution <- function(space, comm = NULL,
   grid <- space$tpds$grid
   alpha <- space$tpds$alpha
   spm <- space
-  units_m <- space$tpds$units
+  units_m <- .unit_tpds(space)
   for (u in names(units_m)) {
     Xm <- matrix(colMeans(space$tpds$X[[u]]), 1L, ncol(space$coords))
     dens <- .kde_at_cells(grid$cells, Xm, space$bw$values[[u]])
@@ -153,7 +141,10 @@ fs_itv_contribution <- function(space, comm = NULL,
     p <- p / sum(p)
     units_m[[u]] <- .alpha_trim(p, alpha)
   }
-  spm$tpds$units <- units_m
+  # swapped unit TPDs invalidate any aggregated levels: keep only the
+  # bottom level in the internal copy
+  spm$tpds$levels <- space$tpds$levels["unit"]
+  spm$tpds$levels$unit$tpds <- units_m
   mean_based <- fs_structure(spm, comm, engine = "prob",
                              indices = indices)
 

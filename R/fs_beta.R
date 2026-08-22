@@ -16,10 +16,20 @@
 #'   within-assemblage entropies, on max-scaled Euclidean distances. No
 #'   decomposition is defined for this engine.
 #'
+#' Assemblages can be supplied as a composition matrix (`comm`; the
+#' assemblage TPDs are built on the fly and discarded) or as the name of
+#' a stored TPD level (`level`; see [fs_aggregate()]), in which case the
+#' stored TPDs are compared directly. The two are mutually exclusive, and
+#' the `level` route requires the probabilistic engine. A space produced
+#' by [fs_pool()] stores its pooled assemblages as level `"unit"`, so
+#' `fs_beta(pooled, level = "unit")` compares them directly.
+#'
 #' @param space An `fspace`; the probabilistic engine requires TPDs
 #'   ([fs_tpd()]).
 #' @param comm Community matrix (assemblages x units) or long data.frame;
-#'   see [fs_structure()].
+#'   see [fs_structure()]. Mutually exclusive with `level`.
+#' @param level Name of a stored TPD level (see [fs_aggregate()]);
+#'   mutually exclusive with `comm`.
 #' @param engine `"prob"` or `"points"`.
 #' @param decompose Logical; compute the shared/non-shared decomposition
 #'   (probabilistic engine only).
@@ -44,32 +54,58 @@
 #' b <- fs_beta(tp, comm)
 #' b$dissimilarity
 #' b$P_non_shared   # part of the dissimilarity from non-shared space
+#'
+#' # stored-level route
+#' tp <- fs_aggregate(tp, comm, name = "plot")
+#' fs_beta(tp, level = "plot")$dissimilarity
 #' @export
-fs_beta <- function(space, comm, engine = c("prob", "points"),
-                    decompose = TRUE) {
+fs_beta <- function(space, comm = NULL, level = NULL,
+                    engine = c("prob", "points"), decompose = TRUE) {
   stopifnot(is_fspace(space))
   engine <- match.arg(engine)
+  if (!is.null(level) && !is.null(comm)) {
+    stop("Supply either `comm` or `level`, not both.", call. = FALSE)
+  }
+  if (is.null(level) && is.null(comm)) {
+    stop("Supply `comm` (assemblage composition) or `level` (a stored ",
+         "TPD level).", call. = FALSE)
+  }
+  if (!is.null(level) && engine != "prob") {
+    stop("`level` uses stored TPDs and works only with the ",
+         "probabilistic engine.", call. = FALSE)
+  }
   if (engine == "prob" && is.null(space$tpds)) {
     stop("The probabilistic engine needs TPDs: run fs_tpd() first, or ",
          "use engine = \"points\".", call. = FALSE)
   }
-  unit_names <- if (engine == "prob") names(space$tpds$units) else
-    rownames(space$coords)
-  W <- .as_comm(comm, unit_names, relative = TRUE)
-  n <- nrow(W)
+
+  if (!is.null(level)) {
+    .check_level(space, level)
+    tpdc <- space$tpds$levels[[level]]$tpds
+    nm <- names(tpdc)
+    n <- length(tpdc)
+  } else {
+    unit_names <- if (engine == "prob") names(.unit_tpds(space)) else
+      rownames(space$coords)
+    W <- .as_comm(comm, unit_names, relative = TRUE)
+    n <- nrow(W)
+    nm <- rownames(W)
+  }
   if (n < 2L) {
     stop("Beta diversity needs at least two assemblages.", call. = FALSE)
   }
-  nm <- rownames(W)
   Dm <- matrix(0, n, n, dimnames = list(nm, nm))
   Psh <- Pns <- if (engine == "prob" && decompose) {
     matrix(NA_real_, n, n, dimnames = list(nm, nm))
   } else NULL
 
   if (engine == "prob") {
-    tpdc <- lapply(seq_len(n), function(a) {
-      .tpdc_sparse(space$tpds$units, W[a, ])
-    })
+    if (is.null(level)) {
+      units <- .unit_tpds(space)
+      tpdc <- lapply(seq_len(n), function(a) {
+        .mix_tpds(units, W[a, ])
+      })
+    }
     for (i in seq_len(n - 1L)) {
       ci <- tpdc[[i]]$cells; pi_ <- tpdc[[i]]$probs
       for (j in seq(i + 1L, n)) {
@@ -126,22 +162,4 @@ print.fbeta <- function(x, ...) {
   print(round(x$dissimilarity[seq_len(k), seq_len(k)], 3))
   if (n > k) cat("... (", n, " x ", n, " matrix)\n", sep = "")
   invisible(x)
-}
-
-# assemblage TPD as a sparse abundance-weighted mixture ------------------------
-
-.tpdc_sparse <- function(units, w) {
-  present <- which(w > 0)
-  parts <- lapply(present, function(u) {
-    list(cells = units[[u]]$cells, p = units[[u]]$probs * w[u])
-  })
-  all_cells <- sort(unique(unlist(lapply(parts, `[[`, "cells"))))
-  pc <- numeric(length(all_cells))
-  pos <- seq_along(all_cells)
-  names(pos) <- all_cells
-  for (m in parts) {
-    j <- pos[as.character(m$cells)]
-    pc[j] <- pc[j] + m$p
-  }
-  list(cells = all_cells, probs = pc / sum(pc))
 }

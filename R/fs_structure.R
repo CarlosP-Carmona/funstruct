@@ -18,17 +18,27 @@
 #' `evenness`, `divergence`, `dispersion`, `rao`, `mpd`, `originality`,
 #' `redundancy` (prob engine only), and `cwm` (one column per dimension).
 #'
+#' Assemblages can be supplied in two mutually exclusive ways: `comm`
+#' (a composition matrix; one-shot, nothing is stored on the space) or
+#' `level` (the name of a level stored with [fs_aggregate()]; indices are
+#' computed for every group of that level, using the effective
+#' bottom-unit weights from [fs_level_weights()]). The `level` route
+#' requires the probabilistic engine.
+#'
 #' @param space An `fspace`; for the probabilistic engine it must carry
 #'   TPDs (see [fs_tpd()]).
 #' @param comm Assemblage composition: a matrix (assemblages x units,
 #'   units as columns, the canonical format) or a long data.frame with
-#'   columns assemblage, unit, abundance. `NULL` treats all units as one
-#'   assemblage with equal abundances.
+#'   columns assemblage, unit, abundance. `NULL` (without `level`) treats
+#'   all units as one assemblage with equal abundances.
+#' @param level Name of a stored TPD level (see [fs_aggregate()]);
+#'   mutually exclusive with `comm`.
 #' @param engine `"prob"` or `"points"`.
 #' @param indices Character vector choosing which indices to compute
 #'   (default: all available for the engine).
 #' @param relative Logical; normalize abundances within assemblages to sum
-#'   to 1 (default `TRUE`).
+#'   to 1 (default `TRUE`). Ignored on the `level` route, whose weights
+#'   are relative by construction.
 #'
 #' @return A data.frame of class `fstructure` (assemblages x indices) with
 #'   attributes `engine` and `settings`.
@@ -48,8 +58,12 @@
 #'
 #' fs_structure(tp, comm)                      # probabilistic engine
 #' fs_structure(sp, comm, engine = "points")   # point-based engine
+#'
+#' # stored-level route: aggregate once, compute on the stored level
+#' tp <- fs_aggregate(tp, comm, name = "plot")
+#' fs_structure(tp, level = "plot")
 #' @export
-fs_structure <- function(space, comm = NULL,
+fs_structure <- function(space, comm = NULL, level = NULL,
                          engine = c("prob", "points"),
                          indices = NULL, relative = TRUE) {
   stopifnot(is_fspace(space))
@@ -59,12 +73,29 @@ fs_structure <- function(space, comm = NULL,
   if (is.null(indices)) indices <- all_idx
   indices <- match.arg(indices, all_idx, several.ok = TRUE)
 
+  if (!is.null(level)) {
+    if (!is.null(comm)) {
+      stop("Supply either `comm` or `level`, not both.", call. = FALSE)
+    }
+    if (engine != "prob") {
+      stop("`level` uses stored TPDs and works only with the ",
+           "probabilistic engine.", call. = FALSE)
+    }
+    .check_level(space, level)
+    W <- fs_level_weights(space, level, to = "unit")
+    out <- .structure_prob(space, W, indices)
+    attr(out, "engine") <- engine
+    attr(out, "settings") <- list(level = level, indices = indices)
+    class(out) <- c("fstructure", "data.frame")
+    return(out)
+  }
+
   if (engine == "prob") {
     if (is.null(space$tpds)) {
       stop("The probabilistic engine needs TPDs: run fs_tpd() first, or ",
            "use engine = \"points\".", call. = FALSE)
     }
-    unit_names <- names(space$tpds$units)
+    unit_names <- names(.unit_tpds(space))
   } else {
     unit_names <- rownames(space$coords)
   }
@@ -147,37 +178,24 @@ print.fstructure <- function(x, ...) {
 # probabilistic engine ---------------------------------------------------------
 
 .structure_prob <- function(space, W, indices) {
-  tp <- space$tpds
-  grid <- tp$grid
+  grid <- space$tpds$grid
   d <- grid$d
   cellvol <- grid$cell_volume
-  units <- names(tp$units)
+  units <- .unit_tpds(space)
 
   need_dissim <- any(c("rao", "mpd", "originality") %in% indices)
-  D <- if (need_dissim) .overlap_dissim(tp$units) else NULL
+  D <- if (need_dissim) .overlap_dissim(units) else NULL
 
   res <- vector("list", nrow(W))
   for (a in seq_len(nrow(W))) {
     w <- W[a, ]
     present <- which(w > 0)
-    # assemblage TPD: abundance-weighted mixture on the union of cells
-    mix <- list()
-    for (u in present) {
-      tu <- tp$units[[u]]
-      mix[[length(mix) + 1L]] <- list(cells = tu$cells,
-                                      p = tu$probs * w[u])
-    }
-    all_cells <- sort(unique(unlist(lapply(mix, `[[`, "cells"))))
-    pc <- numeric(length(all_cells))
-    n_units_cell <- integer(length(all_cells))
-    pos <- seq_along(all_cells)
-    names(pos) <- all_cells
-    for (m in mix) {
-      j <- pos[as.character(m$cells)]
-      pc[j] <- pc[j] + m$p
-      n_units_cell[j] <- n_units_cell[j] + 1L
-    }
-    pc <- pc / sum(pc)
+    # assemblage TPD: abundance-weighted mixture on the union of cells,
+    # via the single mixture operator of the package
+    mixed <- .mix_tpds(units, w, counts = TRUE)
+    all_cells <- mixed$cells
+    pc <- mixed$probs
+    n_units_cell <- mixed$counts
     coords_c <- grid$cells[all_cells, , drop = FALSE]
 
     row <- list()

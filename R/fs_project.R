@@ -106,8 +106,9 @@ fs_project <- function(space, newdata, add = FALSE) {
     O <- O[keep, , drop = FALSE]
   }
   if (!is.null(space$tpds)) {
-    warning("Appending units invalidates previously estimated TPDs; ",
-            "they have been removed. Re-run fs_tpd().", call. = FALSE)
+    warning("Appending units invalidates the estimated TPDs and any ",
+            "aggregated levels built from them; all have been removed. ",
+            "Re-run fs_tpd() (and fs_aggregate()).", call. = FALSE)
     space$tpds <- NULL
     space$bw <- NULL
   }

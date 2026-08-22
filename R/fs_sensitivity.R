@@ -45,7 +45,7 @@ fs_sensitivity <- function(space, comm = NULL, range = c(0.5, 1.5),
 
   res <- lapply(factors, function(f) {
     sp2 <- space
-    units2 <- space$tpds$units
+    units2 <- .unit_tpds(space)
     for (u in names(units2)) {
       H <- space$bw$values[[u]] * f^2
       dens <- .kde_at_cells(grid$cells, space$tpds$X[[u]], H)
@@ -53,7 +53,10 @@ fs_sensitivity <- function(space, comm = NULL, range = c(0.5, 1.5),
       p <- p / sum(p)
       units2[[u]] <- .alpha_trim(p, alpha)
     }
-    sp2$tpds$units <- units2
+    # swapped unit TPDs invalidate any aggregated levels: keep only the
+    # bottom level in the internal copy
+    sp2$tpds$levels <- space$tpds$levels["unit"]
+    sp2$tpds$levels$unit$tpds <- units2
     st <- fs_structure(sp2, comm, engine = "prob", indices = indices)
     cbind(data.frame(factor = f, assemblage = rownames(st),
                      stringsAsFactors = FALSE),
